@@ -1,0 +1,16 @@
+---
+title: "Virtual species paper analyses"
+author: "Jan Salecker"
+date: "8/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Virtual species paper analyses
+
+This Rmarkdown file will summarize virtualspecies analyses that might be part of the spectre manuscript.
+
+...
