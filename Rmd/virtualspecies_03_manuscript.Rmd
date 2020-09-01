@@ -38,8 +38,7 @@ sapply(list.files("../R", full.names = TRUE), source)
 set.seed(3562347)
 exec <- "HPC" # "HPC"
 dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
-dir.cloud <- file.path("/home/jan/netlogo_jan/spectre")
-dir.local <- file.path("spectre/vignettes")
+dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
 
 ## Constant parameters:
 replicates <- 20
@@ -99,13 +98,13 @@ if (exec == "HPC") {
 }
 
 #### Restore results from rds files if neccessary:
-results <- purrr::map_dfr(list.files(dir.cloud, pattern = "rds", full.names = TRUE), function(x) {
-  res.x <- readRDS(x)
-  return(res.x)
-})
+#results <- purrr::map_dfr(list.files(dir.cloud, pattern = "rds", full.names = TRUE), function(x) {
+#  res.x <- readRDS(x)
+#  return(res.x)
+#})
 
 #### STORE RESULTS:
-saveRDS(results, file=file.path(dir.cloud, "virtualspecies_03_manuscript_data.rds"))
+saveRDS(results, file=file.path(dir.cloud, "data", "virtualspecies_03_manuscript_data.rds"))
 
 ```
 
