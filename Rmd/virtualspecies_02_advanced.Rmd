@@ -39,7 +39,7 @@ remotes::install_github("r-spatialecology/spectre", ref="dev", auth_token = gith
 
 Here, we load some packages and define working directories for the hpc, cloudserver and local execution.
 
-```{r packages, eval=FALSE}
+```{r packages}
 library(spectre)
 library(tidyverse)
 library(future)
@@ -48,6 +48,8 @@ library(furrr)
 library(clustermq)
 library(landscapetools)
 
+## Source spectre analysis functions (R folder)
+sapply(list.files("../R", full.names = TRUE), source)
 set.seed(3562347)
 exec <- "HPC" # "HPC"
 dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
@@ -87,49 +89,17 @@ parameters <- expand.grid(landscape_size = landscape_size,
 #### Simulation function
 
 In order to send simulations to the HPC, we need a simulation function that takes rows of our parameter matrix as input, then creates the virtual communities, runs the spectre optimization and finally reports some results (including a benchmark).
+The simulation function is implemented in the file `virtualspecies_simfun.R`. It is basically a wrapper around the `spectre::run_optimization_min_conf()` function that first generates a virtualspecies landscape.
 
-```{r simfun, eval=FALSE}
-simfun <- function(siminputrow, parameters, max_runs, energy_threshold, writeRDS, outdir)
-{
-  # Read and set parameters
-  p <- parameters[siminputrow,]
-  set.seed(p$random_seed)
-  
-  # Construct virtual species:
-  spp <- spectre::generate_data_virtualspecies(ncol=p$landscape_size, nrow=p$landscape_size,
-                                               corr_within = p$corr_within, 
-                                               corr_among = p$corr_among, 
-                                               gamma = p$gamma, 
-                                               beta = p$beta)
-  
-  # Calculate alpha:
-  alpha <- raster::getValues(sum(spp))
-  
-  # Construct solution and target:
-  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
-  target <- spectre:::calculate_solution_commonness_rcpp(solution)
-  
-  #print("start")
-  start_time <- Sys.time()
-  res_min_conf <- spectre::run_optimization_min_conf(alpha, p$gamma, target, max_runs, energy_threshold)
-  end_time <- Sys.time()
-  time_minconf <- as.numeric(end_time - start_time)
- 
-  # Create tibble
-  result <- tibble::tibble(spp.virtual = list(spp),
-                           spp.spectre = list(res_min_conf),
-                           benchmark = time_minconf)
-  
-  # Combine with input
-  result <- cbind(p, result)
-  
-  # Write output
-  if(isTRUE(writeRDS)) {
-    saveRDS(result, file.path(outdir, paste0("spectre_", siminputrow, ".rds")))
-  }
-  
-  return(result)
-}
+```{r exec_example, eval=FALSE}
+## Run one example from the parameter matrix above:
+virtualspecies_simfun(siminputrow = 1, 
+                      parameters = parameters, 
+                      max_runs = 100, 
+                      energy_threshold = 0,
+                      writeRDS = FALSE,
+                      outdir = "")
+
 ```
 
 
@@ -142,12 +112,12 @@ Depending on the parameter `exec` simulations are either performed locally or se
 if (exec == "local") {
   plan(multisession)
   results <- furrr::future_map_dfr(seq(nrow(parameters)), function(x) {
-    simfun(siminputrow = x, 
-           parameters = parameters,
-           max_runs = max_runs,
-           energy_threshold = energy_threshold,
-           writeRDS = FALSE,
-           outdir = dir.cloud)
+    virtualspecies_simfun(siminputrow = x, 
+                          parameters = parameters,
+                          max_runs = max_runs,
+                          energy_threshold = energy_threshold,
+                          writeRDS = FALSE,
+                          outdir = dir.cloud)
   })
 }
 if (exec == "HPC") {
@@ -156,7 +126,7 @@ if (exec == "HPC") {
   njobs <- min(nrow(parameters), maxjobs.hpc)
   jobIDs <- seq(nrow(parameters))
   
-  results <- clustermq::Q(fun = simfun, 
+  results <- clustermq::Q(fun = virtualspecies_simfun, 
                           siminputrow = jobIDs,
                           const = list(parameters = parameters,
                                        max_runs = max_runs,
@@ -250,7 +220,7 @@ ggsave("../figures/virtualspecies_02_advanced_02.png", width=6, height=6, dpi=30
 
 ```{r plot3}
 
-## PLOT 2: Energy improvement
+## PLOT 3: Energy improvement
 energy_im <- energy %>% 
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among, random_seeds) %>% 
   dplyr::summarise(energy_min = min(energy),
@@ -273,5 +243,38 @@ ggplot(energy_im, aes(x=factor(corr_within), y=factor(corr_among), fill=improvem
   scale_fill_viridis_c(direction = 1, option="A") +
   ggthemes::theme_tufte(base_size = 12)
 ggsave("../figures/virtualspecies_02_advanced_03.png", width=6, height=6, dpi=300)
+
+```
+
+
+```{r plot4}
+
+## PLOT 4: Relative error in commonness
+results_rec <- purrr::map_dfr(1:nrow(results), function(x) {
+  out.tib <- results[x,]
+  spp <- results$spp.virtual[[x]]
+  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
+  target <- spectre:::calculate_solution_commonness_rcpp(solution)
+  optimized_grid <- results$spp.spectre[[x]]$optimized_grid
+  out.tib$rec <- calculate_rec(target, optimized_grid)
+  return(out.tib)
+})
+
+results_rec$landscape_size <- factor(results_rec$landscape_size,
+                                    levels = unique(results_rec$landscape_size),
+                                    labels = paste0(unique(results_rec$landscape_size), "x", unique(results_rec$landscape_size)))
+results_rec$gamma <- factor(results_rec$gamma,
+                           levels = unique(results_rec$gamma),
+                           labels = paste0(unique(results_rec$gamma), " species"))
+
+ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  coord_equal() +
+  xlab("correlation within species") +
+  ylab("correlation among species") +
+  scale_fill_viridis_c(direction = 1, option="A") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave("../figures/virtualspecies_02_advanced_04.png", width=6, height=6, dpi=300)
 
 ```

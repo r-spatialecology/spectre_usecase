@@ -13,6 +13,8 @@ Here is a quick overview of the folder structure of this repository
     * *Sourcing in Rmd files can be done with:* `sapply(list.files("../R", full.names = TRUE), source)`
     * `plot_virtualspecies.R`
         * utility function for plotting virtualspecies raster stacks in different formats
+    * `calculate_rec.R`
+        * utility function to calculate relative error in commonness between target and optimized grid
 * Rmd
     * *R Markdown scripts containing analyses, drafts, ...*
     * `Virtualspecies_01_simple.Rmd`
