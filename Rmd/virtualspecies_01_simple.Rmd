@@ -74,8 +74,8 @@ beta <- 0.75  # lower beta = wider species distributions
 spp <- generate_data_virtualspecies(ncol=ncol, nrow=nrow, corr_within = corr_within, corr_among = corr_among, gamma = gamma, beta = beta)
 
 # plot species distributions:
-plot_virtualspecies(spp, type="incidence")
-plot_virtualspecies(spp, type="richness")
+virtualspecies_plot(spp, type="incidence")
+virtualspecies_plot(spp, type="richness")
 ```
 
 #### Preparation of solution
@@ -124,11 +124,11 @@ spp.spectre <- stack(purrr::map(seq(nrow(res_min_conf$optimized_grid)), function
 }))
 
 ## Plot:
-plot_virtualspecies(spp.spectre, type="incidence")
-plot_virtualspecies(spp.spectre, type="richness")
+virtualspecies_plot(spp.spectre, type="incidence")
+virtualspecies_plot(spp.spectre, type="richness")
 
 ## Side by side comparison:
-plot_virtualspecies(species.stack=list("original" = spp, "spectre" = spp.spectre), type="richness")
+virtualspecies_plot(species.stack=list("original" = spp, "spectre" = spp.spectre), type="richness")
 
 
 ```

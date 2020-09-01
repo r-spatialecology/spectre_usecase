@@ -1,4 +1,4 @@
-#' @title plot_virtualspecies
+#' @title virtualspecies_plot
 #' 
 #' @description Plot virtual species raster stacks
 #' 
@@ -28,14 +28,14 @@
 #' spp <- generate_data_virtualspecies(ncol=ncol, nrow=nrow, corr_within = corr_within, corr_among = corr_among, gamma = gamma, beta = beta)
 #' 
 #' # plot species distributions:
-#' plot_virtualspecies(spp, type="incidence")
+#' virtualspecies_plot(spp, type="incidence")
 #' # plot alpha diversity:
-#' plot_virtualspecies(spp, type="richness")
+#' virtualspecies_plot(spp, type="richness")
 #' 
 #' }
 #' @export
 
-plot_virtualspecies <- function(species.stack, type="richness")
+virtualspecies_plot <- function(species.stack, type="richness")
 {
   cols.incidence <- c("TRUE" = "#536E31", "FALSE" = "#D6D6CE")
   
