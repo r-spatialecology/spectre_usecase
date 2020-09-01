@@ -10,6 +10,7 @@ Here is a quick overview of the folder structure of this repository
 * R
     * *R script files containing functions only (.R)*
     * *Please only put functions here that can be sourced without throwing errors*
+    * *Sourcing in Rmd files can be done with:* `sapply(list.files("../R", full.names = TRUE), source)`
     * `plot_virtualspecies.R`
         * utility function for plotting virtualspecies raster stacks in different formats
 * Rmd

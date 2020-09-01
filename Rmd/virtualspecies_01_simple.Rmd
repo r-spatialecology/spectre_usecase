@@ -113,6 +113,9 @@ Here, we first convert the optimized grid of the spectre algorithm to a raster s
 We can also plot a side by side comparison of both richness grids. Here, in this small toy example, both species richness grids are completely equal, so alpha diversity was matched very accurately.
 
 ```{r plot}
+## Calculate relative error in commonness:
+calculate_rec(target, res_min_conf$optimized_grid)
+
 ## Convert to raster stack:
 spp.spectre <- stack(purrr::map(seq(nrow(res_min_conf$optimized_grid)), function(x) {
   r <- raster(matrix(res_min_conf$optimized_grid[x,], nrow=nrow, ncol=ncol, byrow = TRUE))
@@ -126,6 +129,7 @@ plot_virtualspecies(spp.spectre, type="richness")
 
 ## Side by side comparison:
 plot_virtualspecies(species.stack=list("original" = spp, "spectre" = spp.spectre), type="richness")
+
 
 ```
 
