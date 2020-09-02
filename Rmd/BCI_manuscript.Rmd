@@ -1,8 +1,8 @@
 ---
 title: "Assessing the performance of spectre using the Barro Colorado Island (BCI) tree data set"
-author: "MS"
+author: "MSP"
 date: "9/01/2020"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -12,35 +12,43 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Assessing the performance of spectre using the Barro Colorado Island (BCI) tree data set
 
 We will use the Barro Colorado Island (BCI, Condit et al. 2019) data set to assess the performance of spectre under different parameterisations. 
-We arbitrarily choose tree stem data set number 8. 
+The arbitrarily chosen tree stem data set number 8 contains records from > 300 tree species in > 1200 20x20 m cells. 
 
-* TODO: add BCI data description   
+The process generating the BCI_tree8_MSP.rds file is documented in data/BCI_prepare_tree8_data.R
+
 
 We will vary three parameters:
 
 * number of sites/cells, from 30 to 150 
-* gamma, the maximum number of species, from 25 to 300
+* gamma, the maximum number of species, from 25 to 250
 * the number of iterations of the spectre algorithm (10k and 40k)
 
 For each parameterisation we want to run 3 replicates.
 
 ### Using subsamples of the BCI data set to assess algorithm performance
-We sample a random subset of sites, and from that subset we sample gamma species, if possible. 
+We sample a random subset of sites, and from that subset we sample gamma species present in the subset, if possible. 
 If the number of present species in the sampled sites is smaller than gamma, we skip this parameter combination and continue with the next one.
 From the subset, we calculate the target commonness matrix and the $\alpha$-diversity per site, both used as input for the spectre algorithm.
 The algorithm aims to generate a solution that fulfills the two constraints given by the target commonness matrix and the $\alpha$-diversity per site. 
-By comparing the target commonness matrix and the generated solution, we can assess the algorithms performance in XX ways. 
+By comparing the target commonness matrix and the generated solution, we assess the performance of the spectre algorithm in two ways. 
 
-* TODO: add error measure descriptions here
+The mean absolute commonness error $MAE_{commonness}$ is defined as mean(abs(target - solution)), and the relative commonness error is defined 
+
+Code for simulations and generating the figures is found in R/BCI_parameters.R, R/BCI_run.R and R/BCI_plots.R.
 
 #### Results 
 Most spectre-generated solutions were better after 40k iterations than after 10k. 
-Given 40k iterations, spectre generated solutions for up to 150 sites and a gamma of 250 species with a $MAE_{commonness}$ < 1 (Fig. \ref{fig:mae_commonness}). 
+Given 40k iterations, spectre generated solutions for up to 150 sites and a gamma of 250 species with a $MAE_{commonness}$ < 0.8 (Fig. 1). 
 
-```{r mae_commonness, echo=FALSE, fig.cap="\\label{fig:mae_commonness} Mean absolute error in commonness for random subsamples of the BCI data set. ", out.width = '75%'}
+```{r mae_commonness, echo=FALSE, fig.cap="\\label{fig:maecommonness} $MAE_{commonness}$ for random subsamples of the BCI data set. ", out.width = '75%'}
 knitr::include_graphics("../figures/BCI_MAE_commonness.png")
 ```
 
+Given 40k iterations, spectre generated solutions for up to 150 sites and a gamma of 250 species with a $RE_{commonness}$ < 7% (Fig. 2). 
+
+```{r rel_commonness, echo=FALSE, fig.cap="\\label{fig:mae_commonness} $RE_{commonness}$ for random subsamples of the BCI data set. ", out.width = '75%'}
+knitr::include_graphics("../figures/BCI_RE_commonness.png")
+```
 
 
 ## Literature 
