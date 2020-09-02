@@ -9,7 +9,7 @@ The main idea of this repository is to accompany the spectre R package repositor
 
 *R script files containing functions only (.R)*  
 *Please only put functions here that can be sourced without throwing errors*  
-*Sourcing in Rmd files can be done with:* `sapply(list.files("../R", full.names = TRUE), source)`
+*Sourcing in Rmd files or other R scripts can be done with:* `sapply(list.files("../R", full.names = TRUE), source)`
     
 * `calculate_rec.R`
     * utility function to calculate relative error in commonness between target and optimized grid
@@ -17,6 +17,11 @@ The main idea of this repository is to accompany the spectre R package repositor
     * wrapper around spectre optimization that allows for generation of virtualspecies
 * `virtualspecies_plot.R`
     * utility function for plotting virtualspecies raster stacks in different formats
+
+> #### Rscripts
+
+*Other R scripts, such as analyses, ... *
+
 
 > #### Rmd
 

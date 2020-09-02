@@ -182,6 +182,14 @@ energy <- purrr::map_dfr(1:nrow(results), function(x) {
     dplyr::mutate(beta = results$beta[x]) %>% 
     dplyr::mutate(random_seeds = results$random_seeds[x])
 })
+## Add labels to factors
+energy$landscape_size <- factor(energy$landscape_size,
+                                levels = unique(energy$landscape_size),
+                                labels = paste0(unique(energy$landscape_size), " x ", unique(energy$landscape_size)))
+energy$gamma <- factor(energy$gamma,
+                       levels = unique(energy$gamma),
+                       labels = paste0(unique(energy$gamma), " species"))
+
 ggplot(energy, aes(x=i, y=energy, group=interaction(corr_within, corr_among))) +
   facet_grid(landscape_size~gamma) +
   geom_line(aes(color=factor(corr_within), lty=factor(corr_among))) +
@@ -199,20 +207,14 @@ energy_min <- energy %>%
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among, random_seeds) %>% 
   dplyr::summarise(energy = min(energy)) 
 
-energy_min$landscape_size <- factor(energy_min$landscape_size,
-                                    levels = unique(energy_min$landscape_size),
-                                    labels = paste0(unique(energy_min$landscape_size), "x", unique(energy_min$landscape_size)))
-energy_min$gamma <- factor(energy_min$gamma,
-                           levels = unique(energy_min$gamma),
-                           labels = paste0(unique(energy_min$gamma), " species"))
-
 ggplot(energy_min, aes(x=factor(corr_within), y=factor(corr_among), fill=energy)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
+  geom_text(aes(label=round(energy,2))) +
   coord_equal() +
   xlab("correlation within species") +
   ylab("correlation among species") +
-  scale_fill_viridis_c(direction = -1, option="A") +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 ggsave("../figures/virtualspecies_02_advanced_02.png", width=6, height=6, dpi=300)
 
@@ -227,20 +229,14 @@ energy_im <- energy %>%
                    energy_max = max(energy)) %>% 
   dplyr::mutate(improvement = ((energy_max - energy_min) / energy_max) * 100)
 
-energy_im$landscape_size <- factor(energy_im$landscape_size,
-                                    levels = unique(energy_im$landscape_size),
-                                    labels = paste0(unique(energy_im$landscape_size), "x", unique(energy_im$landscape_size)))
-energy_im$gamma <- factor(energy_im$gamma,
-                           levels = unique(energy_im$gamma),
-                           labels = paste0(unique(energy_im$gamma), " species"))
-
 ggplot(energy_im, aes(x=factor(corr_within), y=factor(corr_among), fill=improvement)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
+  geom_text(aes(label=round(improvement,2))) +
   coord_equal() +
   xlab("correlation within species") +
   ylab("correlation among species") +
-  scale_fill_viridis_c(direction = 1, option="A") +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 ggsave("../figures/virtualspecies_02_advanced_03.png", width=6, height=6, dpi=300)
 
