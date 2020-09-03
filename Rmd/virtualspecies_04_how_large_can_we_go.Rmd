@@ -17,7 +17,7 @@ We start with the easiest case: strong correlation between species and low gamma
 
 ## Test 01
 
-```{r packages}
+```{r packages, echo=FALSE, message=FALSE, results='hide'}
 library(spectre)
 library(tidyverse)
 library(future)
@@ -32,7 +32,8 @@ set.seed(3562347)
 exec <- "HPC" # "HPC"
 dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
 dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
-
+```
+```{r parameters}
 ## Constant parameters:
 replicates <- 5
 max_runs <- 50000
@@ -41,11 +42,12 @@ beta <- 0.75
 
 ## Variable parameters:
 landscape_size <- c(10,25,50,75,100)
-corr_within <- 1
+corr_within <- 0.5
 corr_among <- 0.1
-gamma <- 100
+gamma <- c(100,200,300,400)
 random_seeds <- round(runif(replicates) * 100000)
-
+```
+```{r exec, echo=FALSE, eval=FALSE}
 ## Generate parameter matrix:
 parameters <- expand.grid(landscape_size = landscape_size, 
                           corr_within = corr_within,
@@ -85,7 +87,7 @@ if (exec == "HPC") {
                                           log_file = "spectre.log", # define logfile name
                                           queue = "medium",  # define HPC queue
                                           service = "normal", # define HPC service
-                                          walltime = "24:00:00", # define walltime
+                                          walltime = "48:00:00", # define walltime
                                           mem_cpu = "4000")) # define memory per cpu   
   results <- dplyr::bind_rows(results)
 }

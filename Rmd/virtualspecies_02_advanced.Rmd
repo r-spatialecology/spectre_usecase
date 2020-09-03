@@ -266,10 +266,11 @@ results_rec$gamma <- factor(results_rec$gamma,
 ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
+  geom_text(aes(label=round(rec,2))) +
   coord_equal() +
   xlab("correlation within species") +
   ylab("correlation among species") +
-  scale_fill_viridis_c(direction = 1, option="A") +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 ggsave("../figures/virtualspecies_02_advanced_04.png", width=6, height=6, dpi=300)
 
