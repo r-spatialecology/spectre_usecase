@@ -2,20 +2,22 @@
 title: "Assessing the performance of spectre using the Barro Colorado Island (BCI) tree data set"
 author: "MSP"
 date: "9/01/2020"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Assessing the performance of spectre using the Barro Colorado Island (BCI) tree data set
+We will use the Barro Colorado Island (BCI) tree data set (Condit et al. 2019) to assess the performance of spectre under different parameterisations. 
+Die BCI study area is divided into 1251 grid cells of 20 x 20 m, and all trees within the BCI study area are sampled regularly. 
+Each grid cell is considered as one site, and a presence/absence list for all observed 328 tree species is generated, using the last recent "tree.table8".
+The process generating the presence/absence list (BCI_tree8_MSP.rds) is documented in data/BCI_prepare_tree8_data.R
 
-We will use the Barro Colorado Island (BCI, Condit et al. 2019) data set to assess the performance of spectre under different parameterisations. 
-The arbitrarily chosen tree stem data set number 8 contains records from > 300 tree species in > 1200 20x20 m cells. 
-
-The process generating the BCI_tree8_MSP.rds file is documented in data/BCI_prepare_tree8_data.R
-
+We sample a random subset of sites, and from that subset we sample gamma species present in the subset, if possible. 
+If the number of present species in the sampled sites is smaller than gamma, we skip this parameter combination and continue with the next one.
+From the subset, we calculate the target commonness matrix and the $\alpha$-diversity per site, both used as input for the spectre algorithm.
+The algorithm aims to generate a solution that fulfills the two constraints given by the target commonness matrix and the $\alpha$-diversity per site. 
 
 We will vary three parameters:
 
@@ -23,18 +25,17 @@ We will vary three parameters:
 * gamma, the maximum number of species, from 25 to 250
 * the number of iterations of the spectre algorithm (10k and 40k)
 
-For each parameterisation we want to run 3 replicates.
+For each parameterisation we want to run 3 replicates. Code for simulations and generating the figures is found in R/BCI_parameters.R, R/BCI_run.R and R/BCI_plots.R.
 
-### Using subsamples of the BCI data set to assess algorithm performance
-We sample a random subset of sites, and from that subset we sample gamma species present in the subset, if possible. 
-If the number of present species in the sampled sites is smaller than gamma, we skip this parameter combination and continue with the next one.
-From the subset, we calculate the target commonness matrix and the $\alpha$-diversity per site, both used as input for the spectre algorithm.
-The algorithm aims to generate a solution that fulfills the two constraints given by the target commonness matrix and the $\alpha$-diversity per site. 
-By comparing the target commonness matrix and the generated solution, we assess the performance of the spectre algorithm in two ways. 
+### Error quantification
+Firstly, we evaluate how much the commonness matrix of the predicted solution deviates from the observed target commonness matrix. The mean absolute commonness error $MAE_{commonness}$ is defined as 
 
-The mean absolute commonness error $MAE_{commonness}$ is defined as mean(abs(target - solution)), and the relative commonness error is defined 
+$$ MAE_{commonness} = mean(abs(target - solution)) . $$ 
 
-Code for simulations and generating the figures is found in R/BCI_parameters.R, R/BCI_run.R and R/BCI_plots.R.
+Secondly, we calculate the ratio between $MAE_{commonness}$ and mean of the target commonness matrix. The relative commonness error $RCE$ is defined as 
+$$ RCE = \frac{MAE_{commonness}} {mean(abs(target))} * 100. $$ 
+
+
 
 #### Results 
 Most spectre-generated solutions were better after 40k iterations than after 10k. 
@@ -44,9 +45,9 @@ Given 40k iterations, spectre generated solutions for up to 150 sites and a gamm
 knitr::include_graphics("../figures/BCI_MAE_commonness.png")
 ```
 
-Given 40k iterations, spectre generated solutions for up to 150 sites and a gamma of 250 species with a $RE_{commonness}$ < 7% (Fig. 2). 
+Given 40k iterations, spectre generated solutions for up to 150 sites and a gamma of 250 species with a $RCE$ < 7% (Fig. 2). 
 
-```{r rel_commonness, echo=FALSE, fig.cap="\\label{fig:mae_commonness} $RE_{commonness}$ for random subsamples of the BCI data set. ", out.width = '75%'}
+```{r rel_commonness, echo=FALSE, fig.cap="\\label{fig:rel_commonness} $RE_{commonness}$ for random subsamples of the BCI data set. ", out.width = '75%'}
 knitr::include_graphics("../figures/BCI_RE_commonness.png")
 ```
 
