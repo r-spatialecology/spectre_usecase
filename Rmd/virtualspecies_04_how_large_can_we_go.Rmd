@@ -35,7 +35,7 @@ dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
 ```
 ```{r parameters}
 ## Constant parameters:
-replicates <- 5
+replicates <- 1
 max_runs <- 50000
 energy_threshold <- 0
 beta <- 0.75
@@ -108,6 +108,70 @@ saveRDS(results, file=file.path(dir.cloud, "data", "virtualspecies_04_howlargeca
 
 #### Energy over time
 
+```{r plot1}
+library(tidyverse)
+results <- readRDS("../data/virtualspecies_04_howlarge_temp.rds")
+
+energy <- purrr::map_dfr(1:nrow(results), function(x) {
+  energy <- results$spp.spectre[[x]]$energy %>% 
+    dplyr::mutate(landscape_size = results$landscape_size[x]) %>% 
+    dplyr::mutate(corr_within = results$corr_within[x]) %>% 
+    dplyr::mutate(corr_among = results$corr_among[x]) %>%
+    dplyr::mutate(gamma = results$gamma[x]) %>% 
+    dplyr::mutate(beta = results$beta[x]) %>% 
+    dplyr::mutate(random_seeds = results$random_seeds[x])
+})
+
+## PLOT 1: Minimum energy
+energy_min <- energy %>% 
+  dplyr::group_by(random_seeds,landscape_size, gamma, corr_within, corr_among) %>% 
+  dplyr::summarise(energy = min(energy)) %>% 
+  dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
+  dplyr::mutate(min_energy_mu = mean(energy),
+                min_energy_sd = sd(energy))
+  
+
+ggplot(energy_min, aes(x=gamma, y=min_energy_mu, color=factor(landscape_size), group=landscape_size)) +
+  geom_pointrange(aes(ymin=min_energy_mu - min_energy_sd, ymax=min_energy_mu + min_energy_sd)) +
+  geom_line() +
+  xlab("Gamma") +
+  ylab("Minimum energy") +
+  guides(color=guide_legend(title="Landscape size")) +
+  ggsci::scale_color_jco() +
+  ggthemes::theme_tufte(base_size = 12)
+
+ggsave("../figures/virtualspecies_04_bench_min_energy.png", width=6, height=6, dpi=300)
+
+
+## PLOT 2: Relative error in commonness
+results_rec <- purrr::map_dfr(1:nrow(results), function(x) {
+  out.tib <- results[x,]
+  spp <- results$spp.virtual[[x]]
+  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
+  target <- spectre:::calculate_solution_commonness_rcpp(solution)
+  optimized_grid <- results$spp.spectre[[x]]$optimized_grid
+  out.tib$rec <- calculate_rec(target, optimized_grid)
+  return(out.tib)
+})
+
+results_rec <- results_rec %>% 
+  dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
+  dplyr::summarise(rec_mu = mean(rec),
+                   rec_sd = sd(rec))
+
+
+ggplot(results_rec, aes(x=gamma, y=rec_mu, color=factor(landscape_size), group=landscape_size)) +
+  geom_pointrange(aes(ymin=rec_mu - rec_sd, ymax=rec_mu + rec_sd)) +
+  geom_line() +
+  xlab("Gamma") +
+  ylab("Relative error in commonness") +
+  guides(color=guide_legend(title="Landscape size")) +
+  ggsci::scale_color_jco() +
+  ggthemes::theme_tufte(base_size = 12)
+
+ggsave("../figures/virtualspecies_04_bench_rec.png", width=6, height=6, dpi=300)
+
+```
 
 #### Minimum energy
 
