@@ -78,3 +78,28 @@ if (exec == "HPC") {
 
 #### STORE RESULTS:
 saveRDS(results, file=file.path(dir.cloud, "data", "virtualspecies_benchmark.rds"))
+
+
+#### Examine results:
+#
+#
+results <- readRDS("data/virtualspecies_benchmark.rds")
+
+## Projected time for 50000 iterations:
+
+bench<- results %>% 
+  dplyr::select(gamma, landscape_size, benchmark) %>% 
+  dplyr::mutate(benchmark_proj_50k = ((((benchmark / 100) * 50000) / 60) / 60))
+
+
+
+### Time:
+ggplot(bench, aes(x=gamma, y=benchmark_proj_50k, color=factor(landscape_size), group=landscape_size)) +
+  geom_line(size=1) +
+  geom_point(size=2) +
+  #geom_bar(stat="identity", position="dodge") +
+  xlab("Gamma") +
+  ylab("Time per 50k iterations [hrs]") +
+  #guides(color=guide_legend(title="Landscape size")) +
+  ggsci::scale_color_jco() +
+  ggthemes::theme_tufte(base_size = 12)

@@ -47,6 +47,8 @@
 
 virtualspecies_simfun <- function(siminputrow, parameters, max_runs, energy_threshold, writeRDS, outdir)
 {
+  t0_start_simfun <- Sys.time()
+  
   # Read and set parameters
   p <- parameters[siminputrow,]
   set.seed(p$random_seed)
@@ -65,16 +67,18 @@ virtualspecies_simfun <- function(siminputrow, parameters, max_runs, energy_thre
   solution <- spectre::generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   
-  #print("start")
-  start_time <- Sys.time()
+  t1_end_data_preparation <- Sys.time()
+  
+  # Run spectre:
   res_min_conf <- spectre::run_optimization_min_conf(alpha, p$gamma, target, max_runs, energy_threshold)
-  end_time <- Sys.time()
-  time_minconf <- as.numeric(end_time - start_time)
+  t2_end_spectre <- Sys.time()
   
   # Create tibble
   result <- tibble::tibble(spp.virtual = list(spp),
                            spp.spectre = list(res_min_conf),
-                           benchmark = time_minconf)
+                           bench_total = t2_end_spectre - t0_start_simfun,
+                           bench_prep = t1_end_data_preparation - t0_start_simfun,
+                           bench_spectre = t2_end_spectre - t1_end_data_preparation)
   
   # Combine with input
   result <- cbind(p, result)
