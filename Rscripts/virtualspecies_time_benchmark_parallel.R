@@ -20,10 +20,10 @@ energy_threshold <- 0
 beta <- 0.75
 
 ## Variable parameters:
-landscape_size <- c(10,25,50,75,100)
+landscape_size <- c(10,50,75)
 corr_within <- 0.5
 corr_among <- 0.1
-gamma <- c(100,200,300,400)
+gamma <- c(100,250,400)
 random_seeds <- round(runif(replicates) * 100000)
 
 ## Generate parameter matrix:
@@ -66,6 +66,7 @@ if (exec == "HPC") {
                                           queue = "medium",  # define HPC queue
                                           service = "normal", # define HPC service
                                           walltime = "48:00:00", # define walltime
+                                          n_cpu = 12,
                                           mem_cpu = "4000")) # define memory per cpu   
   results <- dplyr::bind_rows(results)
 }
