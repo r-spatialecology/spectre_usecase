@@ -24,7 +24,7 @@ In addition to Matthias (@mspngbrg) approach (investigating the BCI dataset), th
 ## Executing
 
 
-```{r packages}
+```{r packages, eval=FALSE}
 library(spectre)
 library(tidyverse)
 library(future)
@@ -111,25 +111,70 @@ saveRDS(results, file=file.path(dir.cloud, "data", "virtualspecies_03_manuscript
 ## Analysis
 
 
-#### Energy over time
+```{r load.data, include=FALSE}
+library(tidyverse)
+sapply(list.files("../R", full.names = TRUE), source)
+results <- readRDS("../data/virtualspecies_03_manuscript_data.rds")
+```
 
+#### Species richness of simulated species grids
+
+```{r calc.sr, include=FALSE}
+sr <- purrr::map_dfr(1:nrow(results), function(x) {
+  
+  landscape_size <- results$landscape_size[x]
+  corr_within <- results$corr_within[x]
+  corr_among <- results$corr_among[x]
+  gamma <- results$gamma[x]
+  beta <- results$beta[x]
+  random_seeds <- results$random_seeds[x]
+  
+  sr <- raster::as.data.frame(sum(results$spp.virtual[[x]]), xy=TRUE) %>% 
+    dplyr::rename(alpha=layer) %>% 
+    dplyr::mutate(landscape_size = landscape_size) %>% 
+    dplyr::mutate(corr_within = corr_within) %>% 
+    dplyr::mutate(corr_among = corr_among) %>%
+    dplyr::mutate(gamma = gamma) %>% 
+    dplyr::mutate(beta = beta) %>% 
+    dplyr::mutate(random_seeds = random_seeds)
+
+  return(sr)
+})
+
+sr$corr_within <- factor(sr$corr_within,
+                        levels = unique(sr$corr_within),
+                        labels = paste0(unique(sr$corr_within), " within"))
+
+sr$corr_among <- factor(sr$corr_among,
+                        levels = unique(sr$corr_among),
+                        labels = paste0(unique(sr$corr_among), " among"))
+
+sr$landscape_size <- factor(sr$landscape_size,
+                                 levels = unique(sr$landscape_size),
+                                 labels = paste0(unique(sr$landscape_size), " x ", unique(sr$landscape_size)))
+sr$gamma <- factor(sr$gamma,
+                        levels = unique(sr$gamma),
+                        labels = paste0(unique(sr$gamma), " species"))
+```
+
+```{r plot.sr}
+for(i in unique(sr$landscape_size)) {
+  sr %>% 
+  dplyr::filter(landscape_size==i) %>% 
+ggplot2::ggplot(., ggplot2::aes(x=x, y=y, fill=alpha)) +
+  facet_grid(random_seeds+gamma~corr_within+corr_among) +
+        ggplot2::geom_tile() +
+        ggplot2::coord_equal() +
+        #ggplot2::guides(fill="none") +
+        ggplot2::scale_fill_viridis_c(option="D") +
+        ggplot2::theme_void()  
+ggsave(paste0("../figures/virtualspecies_03_manuscript_01_sr_", strsplit(i, " ")[[1]][1], ".png"), width=10, height=10, dpi=300)
+}
+```
 
 #### Minimum energy
 
-standardized regression coefficient:
-summary(lm(scale(energy) ~ scale(landscape_size) * scale(gamma) * scale(corr_within) * scale(corr_among), data=energy_min))
-
-#### Realtive commonness error
-
-
-#### Post-processing
-
-Lets first have a look at the energy curves:
-
-```{r plot1}
-library(tidyverse)
-results <- readRDS("../data/virtualspecies_03_manuscript_data.rds")
-
+```{r calc.min.energy, include=FALSE}
 energy <- purrr::map_dfr(1:nrow(results), function(x) {
   energy <- results$spp.spectre[[x]]$energy %>% 
     dplyr::mutate(landscape_size = results$landscape_size[x]) %>% 
@@ -151,8 +196,9 @@ energy$gamma <- factor(energy$gamma,
 energy_min <- energy %>% 
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
   dplyr::summarise(energy = min(energy))
-  
+```  
 
+```{r plot.min.energy}
 ggplot(energy_min, aes(x=factor(corr_within), y=factor(corr_among), fill=energy)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
@@ -163,9 +209,13 @@ ggplot(energy_min, aes(x=factor(corr_within), y=factor(corr_among), fill=energy)
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 
-ggsave("../figures/virtualspecies_03_manuscript_01_min_energy.png", width=6, height=6, dpi=300)
+ggsave("../figures/virtualspecies_03_manuscript_02_min_energy.png", width=6, height=6, dpi=300)
+```
 
 
+#### Realtive commonness error
+
+```{r calc.rec, include=FALSE}
 ## PLOT 2: Relative error in commonness
 results_rec <- purrr::map_dfr(1:nrow(results), function(x) {
   out.tib <- results[x,]
@@ -187,7 +237,9 @@ results_rec$landscape_size <- factor(results_rec$landscape_size,
 results_rec$gamma <- factor(results_rec$gamma,
                            levels = unique(results_rec$gamma),
                            labels = paste0(unique(results_rec$gamma), " species"))
+```
 
+```{r plot.rec}
 ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
@@ -197,7 +249,7 @@ ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) 
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_02_advanced_02_rec.png", width=6, height=6, dpi=300)
+ggsave("../figures/virtualspecies_03_manuscript_03_rec.png", width=6, height=6, dpi=300)
 
 ```
 
