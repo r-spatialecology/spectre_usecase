@@ -194,8 +194,10 @@ energy$gamma <- factor(energy$gamma,
 
 ## PLOT 1: Minimum energy
 energy_min <- energy %>% 
+  dplyr::group_by(landscape_size, gamma, corr_within, corr_among, random_seeds) %>% 
+  dplyr::summarise(energy = min(energy)) %>% 
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
-  dplyr::summarise(energy = min(energy))
+  dplyr::summarise(energy = mean(energy))
 ```  
 
 ```{r plot.min.energy}
