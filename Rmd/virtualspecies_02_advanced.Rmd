@@ -252,7 +252,7 @@ results_rec <- purrr::map_dfr(1:nrow(results), function(x) {
   solution <- spectre::generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   optimized_grid <- results$spp.spectre[[x]]$optimized_grid
-  out.tib$rec <- calculate_rec(target, optimized_grid)
+  out.tib$rec <- calculate_rce(target, optimized_grid)
   return(out.tib)
 })
 

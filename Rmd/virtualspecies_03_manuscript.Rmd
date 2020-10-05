@@ -217,42 +217,60 @@ ggsave("../figures/virtualspecies_03_manuscript_02_min_energy.png", width=6, hei
 
 #### Realtive commonness error
 
-```{r calc.rec, include=FALSE}
+```{r calc.rce, include=FALSE}
 ## PLOT 2: Relative error in commonness
-results_rec <- purrr::map_dfr(1:nrow(results), function(x) {
+results_rce <- purrr::map_dfr(1:nrow(results), function(x) {
   out.tib <- results[x,]
   spp <- results$spp.virtual[[x]]
   solution <- spectre::generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   optimized_grid <- results$spp.spectre[[x]]$optimized_grid
-  out.tib$rec <- calculate_rec(target, optimized_grid)
+  
+  # Calculate rce and mae
+  out.tib$rce <- calculate_rce(target, optimized_grid)
+  out.tib$mae <- calculate_mae(target, optimized_grid)
   return(out.tib)
 })
 
-results_rec <- results_rec %>% 
+# Aggregate across replicates (random seeds)
+results_rce <- results_rce %>% 
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
-  dplyr::summarise(rec = mean(rec))
+  dplyr::summarise(rce = mean(rce),
+                   mae = mean(mae))
 
-results_rec$landscape_size <- factor(results_rec$landscape_size,
-                                    levels = unique(results_rec$landscape_size),
-                                    labels = paste0(unique(results_rec$landscape_size), "x", unique(results_rec$landscape_size)))
-results_rec$gamma <- factor(results_rec$gamma,
-                           levels = unique(results_rec$gamma),
-                           labels = paste0(unique(results_rec$gamma), " species"))
+results_rce$landscape_size <- factor(results_rce$landscape_size,
+                                    levels = unique(results_rce$landscape_size),
+                                    labels = paste0(unique(results_rce$landscape_size), "x", unique(results_rce$landscape_size)))
+results_rce$gamma <- factor(results_rce$gamma,
+                           levels = unique(results_rce$gamma),
+                           labels = paste0(unique(results_rce$gamma), " species"))
 ```
 
 ```{r plot.rec}
-ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) +
+ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=rce)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
-  geom_text(aes(label=round(rec,2))) +
+  geom_text(aes(label=round(rce,2))) +
   coord_equal() +
   xlab("correlation within species") +
   ylab("correlation among species") +
   guides(fill=guide_colorbar(title="RCE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_03_manuscript_03_rec.png", width=6, height=6, dpi=300)
+ggsave("../figures/virtualspecies_03_manuscript_03_rce.png", width=6, height=6, dpi=300)
 
 ```
+```{r plot.mae}
+ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=mae)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label=round(mae,2))) +
+  coord_equal() +
+  xlab("correlation within species") +
+  ylab("correlation among species") +
+  guides(fill=guide_colorbar(title="MAE")) +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave("../figures/virtualspecies_03_manuscript_04_mae.png", width=6, height=6, dpi=300)
 
+```

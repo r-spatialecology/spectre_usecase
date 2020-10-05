@@ -114,7 +114,7 @@ We can also plot a side by side comparison of both richness grids. Here, in this
 
 ```{r plot}
 ## Calculate relative error in commonness:
-calculate_rec(target, res_min_conf$optimized_grid)
+calculate_rce(target, res_min_conf$optimized_grid)
 
 ## Convert to raster stack:
 spp.spectre <- stack(purrr::map(seq(nrow(res_min_conf$optimized_grid)), function(x) {
