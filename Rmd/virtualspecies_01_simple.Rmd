@@ -68,7 +68,7 @@ nrow <- 5
 gamma <- 100
 corr_within <- 1 # strength of spatial autocorrelation within species
 corr_among <- 1 # strength of spatial correlation among species (% of gamma)
-beta <- 0.75  # lower beta = wider species distributions
+beta <- 0.5  # lower beta = wider species distributions
 
 # Generate species and create list of alpha diversity:
 spp <- generate_data_virtualspecies(ncol=ncol, nrow=nrow, corr_within = corr_within, corr_among = corr_among, gamma = gamma, beta = beta)

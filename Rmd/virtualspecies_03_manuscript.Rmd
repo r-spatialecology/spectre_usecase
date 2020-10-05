@@ -226,9 +226,11 @@ results_rce <- purrr::map_dfr(1:nrow(results), function(x) {
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   optimized_grid <- results$spp.spectre[[x]]$optimized_grid
   
-  # Calculate rce and mae
+  # Calculate mean commonness (mc), relatice commonness error (rce) and mean absolute commonness error (mae)
+  out.tib$mc <- calculate_mc(target)
   out.tib$rce <- calculate_rce(target, optimized_grid)
   out.tib$mae <- calculate_mae(target, optimized_grid)
+  
   return(out.tib)
 })
 
@@ -236,7 +238,8 @@ results_rce <- purrr::map_dfr(1:nrow(results), function(x) {
 results_rce <- results_rce %>% 
   dplyr::group_by(landscape_size, gamma, corr_within, corr_among) %>% 
   dplyr::summarise(rce = mean(rce),
-                   mae = mean(mae))
+                   mae = mean(mae),
+                   mc = mean(mc))
 
 results_rce$landscape_size <- factor(results_rce$landscape_size,
                                     levels = unique(results_rce$landscape_size),
@@ -270,6 +273,23 @@ ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=mae)) 
   ylab("correlation among species") +
   guides(fill=guide_colorbar(title="MAE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave("../figures/virtualspecies_03_manuscript_04_mae.png", width=6, height=6, dpi=300)
+
+```
+
+
+
+```{r plot.mc}
+ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=mc)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label=round(mc,2))) +
+  coord_equal() +
+  xlab("correlation within species") +
+  ylab("correlation among species") +
+  guides(fill=guide_colorbar(title="MC")) +
+  ggthemes::scale_fill_continuous_tableau(palette="Blue-Teal") +
   ggthemes::theme_tufte(base_size = 12)
 ggsave("../figures/virtualspecies_03_manuscript_04_mae.png", width=6, height=6, dpi=300)
 

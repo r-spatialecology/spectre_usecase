@@ -24,7 +24,7 @@ calculate_rce <- function(target, optimized_grid)
   target_commonness <- target 
   
   # Calculate mean:
-  target_mean_commonness <- mean(abs(target), na.rm = TRUE)
+  target_mean_commonness <- calculate_mc(target)
   
   # Calculate mean difference:
   rce <- mean(abs(solution_commonness - target_commonness), na.rm = TRUE)
