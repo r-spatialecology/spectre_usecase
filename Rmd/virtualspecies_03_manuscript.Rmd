@@ -115,8 +115,8 @@ We first need to load the data that was processed by the HPC.
 ```{r load.data, include=FALSE}
 library(tidyverse)
 sapply(list.files("../R", full.names = TRUE), source)
-#results <- readRDS("../data/virtualspecies_03_manuscript_data_v2.rds")
-results <- readRDS("../data/virtualspecies_03_manuscript_data_beta05.rds")
+results <- readRDS("../data/virtualspecies_03_manuscript_data.rds")
+plotdir <- "../figures/virtualspecies_manuscript"
 
 ```
 
@@ -173,7 +173,7 @@ ggplot2::ggplot(., ggplot2::aes(x=x, y=y, fill=alpha)) +
         #ggplot2::guides(fill="none") +
         ggplot2::scale_fill_viridis_c(option="D") +
         ggplot2::theme_void()  
-ggsave(paste0("../figures/virtualspecies_03_manuscript_01_sr_", strsplit(i, " ")[[1]][1], ".png"), width=10, height=10, dpi=300)
+ggsave(filename=paste0("virtualspecies_03_manuscript_01_sr_", strsplit(i, " ")[[1]][1], ".png"), path=plotdir, width=10, height=10, dpi=300)
 }
 ```
 
@@ -216,7 +216,7 @@ ggplot(energy_min, aes(x=factor(corr_within), y=factor(corr_among), fill=energy)
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 
-ggsave("../figures/virtualspecies_03_manuscript_02_min_energy.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_03_manuscript_02_min_energy.png", path=plotdir, width=6, height=6, dpi=300)
 ```
 
 
@@ -265,7 +265,7 @@ ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=rce)) 
   guides(fill=guide_colorbar(title="RCE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_03_manuscript_03_rce.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_03_manuscript_03_rce.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 ```{r plot.mae}
@@ -279,7 +279,7 @@ ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=mae)) 
   guides(fill=guide_colorbar(title="MAE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_03_manuscript_04_mae.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_03_manuscript_04_mae.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 
@@ -296,7 +296,7 @@ ggplot(results_rce, aes(x=factor(corr_within), y=factor(corr_among), fill=mc)) +
   guides(fill=guide_colorbar(title="MC")) +
   ggthemes::scale_fill_continuous_tableau(palette="Blue-Teal") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_03_manuscript_04_mae.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_03_manuscript_05_mc.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 
@@ -359,6 +359,6 @@ ggplot(results_main, aes(x=gamma, y=rce_mu, color=landscape_size, group=landscap
   ggthemes::scale_color_colorblind() +
   ggthemes::theme_tufte(base_size = 12)
 
-ggsave("../figures/virtualspecies_03_manuscript_05_maintext.png", width=6, height=3, dpi=300)
+ggsave(filename="virtualspecies_03_manuscript_06_maintext.png", path=plotdir, width=6, height=3, dpi=300)
 
 ```

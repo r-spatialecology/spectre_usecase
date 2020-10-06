@@ -171,6 +171,7 @@ Lets first have a look at the energy curves:
 ```{r plot1}
 library(tidyverse)
 results <- readRDS("../data/virtualspecies_02_advanced_data.rds")
+plotdir <- "../figures/virtualspecies_advanced"
 
 ## PLOT 1: Energy curves
 energy <- purrr::map_dfr(1:nrow(results), function(x) {
@@ -196,7 +197,7 @@ ggplot(energy, aes(x=i, y=energy, group=interaction(corr_within, corr_among))) +
   ggsci::scale_color_jama() +
   ggthemes::theme_tufte(base_size=12)
 
-ggsave("../figures/virtualspecies_02_advanced_01.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_02_advanced_01.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 
@@ -216,7 +217,7 @@ ggplot(energy_min, aes(x=factor(corr_within), y=factor(corr_among), fill=energy)
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_02_advanced_02.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_02_advanced_02.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 
@@ -238,7 +239,7 @@ ggplot(energy_im, aes(x=factor(corr_within), y=factor(corr_among), fill=improvem
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_02_advanced_03.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_02_advanced_03.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
 
@@ -272,6 +273,6 @@ ggplot(results_rec, aes(x=factor(corr_within), y=factor(corr_among), fill=rec)) 
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
-ggsave("../figures/virtualspecies_02_advanced_04.png", width=6, height=6, dpi=300)
+ggsave(filename="virtualspecies_02_advanced_04.png", path=plotdir, width=6, height=6, dpi=300)
 
 ```
