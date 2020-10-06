@@ -30,7 +30,7 @@ calculate_rce <- function(target, optimized_grid)
   rce <- mean(abs(solution_commonness - target_commonness), na.rm = TRUE)
   
   # Weight rleative to target mean:
-  rce <- rce / target_mean_commonness 
+  rce <- rce / target_mean_commonness * 100
   
   return(rce)
 }
