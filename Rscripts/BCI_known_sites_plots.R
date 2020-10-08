@@ -1,4 +1,4 @@
-### Plot results of min_conf_ algorithm tests...
+### Plot results 
 
 library(ggplot2)
 library(tidyverse)
@@ -10,6 +10,7 @@ df<- list.files(path =("./BCI_res_known_sites"), pattern = "*.rds", full.names =
 df$replicate <- as.factor(df$replicate)
 df$known_sites <- as.factor(df$known_sites)
 
+# Correctly predicted species
 ggplot(data = df, aes(x = known_sites, y = correctly_predicted_species))+ # , col = replicate))+
   scale_y_continuous(name = "Correctly predicted species [%]", breaks = seq(0, 100, 20), limits = c(0, 100) ) + 
   scale_x_discrete(name ="n known sites")+
