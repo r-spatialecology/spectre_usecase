@@ -1,15 +1,17 @@
-# Illustrate performance of the spectre algorithm/package using subsets of the Barro Colorado tree data (Cohen et al. 20xx)
+# Illustrate performance of the spectre algorithm/package using subsets of the Barro Colorado tree data 
+# Condit R., Perez, R., Aguilar, S., Lao, S., Foster, R., Hubbell, S.P. 2019. 
+# Complete data from the Barro Colorado 50-ha plot: 423617 trees, 35 years, 2019 version.   
+# https://doi.org/10.15146/5xcp-0d46.
 
 library("spectre")
 library("foreach")
 
 # set parameters 
-replicate <- 1:5 # 1:5 # replicates per parameter combination
-n_sites <- c(50, 100) # , 150, 200) # how large is the BCI subset used
-n_species <- c(100, 150) # , 200, 250) # how many species are sampled subset of the BCI data 
-max_iterations <- c(3, 10) # c(10000, 30000, 50000) # how many iterations of the algorithm
+replicate <- 1:20 # replicates per parameter combination
+n_sites <- c(100, 150, 200, 250) # how large is the BCI subset used
+n_species <- c(100, 150, 200, 250) # how many species are sampled from subset of the BCI data 
+max_iterations <- c(50000) # how many iterations of the algorithm
 energy_threshold <- 0.0
-n_sample_points <- 500
 verbose = TRUE
 
 parameters <- tidyr::crossing(replicate, 
@@ -17,9 +19,7 @@ parameters <- tidyr::crossing(replicate,
                               n_species,
                               max_iterations,
                               energy_threshold, 
-                              n_sample_points,
-                              verbose
-)
+                              verbose)
 
 
 parameters$siminputrow <- 1:dim(parameters)[1]
@@ -40,7 +40,6 @@ sim_fun <- function(siminputrow, parameters, writeRDS, verbose)
   (n_species <- p$n_species) 
   replicate <- p$replicate
   max_iterations <- p$max_iterations
-  n_sample_points <- p$n_sample_points
   energy_threshold <- p$energy_threshold 
   verbose <- p$verbose
   siminputrow <- p$siminputrow
@@ -86,8 +85,6 @@ sim_fun <- function(siminputrow, parameters, writeRDS, verbose)
     # get crucial information from sampled data
     (alpha_list <- colSums(sampled_data))
     (total_gamma <- sum(rowSums(sampled_data) > 0))
-    mean_richness <- mean(alpha_list)
-    mean_commonness <- mean(abs(target_commonness), na.rm = TRUE)
     
     res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha_list, 
                                                        total_gamma = total_gamma, 
@@ -98,27 +95,22 @@ sim_fun <- function(siminputrow, parameters, writeRDS, verbose)
                                                        verbose = verbose,
                                                        seed = seed) # 
     
-    ### 
-    # MAE_c
+    # MAE_c & RCE
     solution_commonness <- spectre:::calculate_solution_commonness_rcpp(res_min_conf$optimized_grid)
     MAE_c <- mean(abs(solution_commonness - target_commonness), na.rm = TRUE) 
     RCE <- MAE_c / mean(abs(target_commonness), na.rm = TRUE) * 100 
-    ###
+    
     r_1 <- tibble::tibble(replicate = replicate,
                           n_sites = n_sites,
-                          # known_sites = known_sites,
                           n_species = n_species,
-                          # correctly_predicted_species = correctly_predicted_species,
                           MAE_c = MAE_c,
                           RCE = RCE,
                           iterations = max_iterations)
     
     saveRDS(r_1, file = paste0("./BCI_res/", siminputrow, ".rds")) 
+    
   }
 }
-### 
-
-
 
 foreach(REPLICATE = 1:dim(parameters)[1], .export = c("p"), .packages = c("spectre")) %do% {
   print(paste0("Replicate: ", REPLICATE))
