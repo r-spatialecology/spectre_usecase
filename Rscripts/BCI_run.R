@@ -75,7 +75,7 @@ sim_fun <- function(siminputrow, parameters, writeRDS, verbose)
       sampled_data[1:n_species, ] <- temp_data[sampled_species, ]
       
       # check commonness of sampled sites
-      (target_commonness <- spectre:::calculate_solution_commonness_rcpp( sampled_data ) )
+      (target_commonness <- spectre:::calculate_solution_commonness_rcpp(sampled_data))
       sum_commonness <- sum(target_commonness, na.rm = TRUE)
       print(paste0("Sum commonness is = ", sum_commonness))
     }
