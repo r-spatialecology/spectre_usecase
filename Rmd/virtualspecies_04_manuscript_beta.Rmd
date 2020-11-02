@@ -212,12 +212,12 @@ ggplot(energy_min, aes(x=factor(beta), y=factor(corr_among), fill=energy)) +
   geom_tile() +
   geom_text(aes(label=round(energy,2))) +
   coord_equal() +
-  xlab("correlation within species") +
+  xlab("virtual species distribution width threshold") +
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 
-ggsave(filename="min_energy.png", paht=plotdir, width=6, height=6, dpi=300)
+ggsave(filename="min_energy.png", path=plotdir, width=6, height=6, dpi=300)
 ```
 
 
@@ -261,7 +261,7 @@ ggplot(results_rce, aes(x=factor(beta), y=factor(corr_among), fill=rce)) +
   geom_tile() +
   geom_text(aes(label=round(rce,2))) +
   coord_equal() +
-  xlab("width of species distribution (beta)") +
+  xlab("virtual species distribution width threshold") +
   ylab("correlation among species") +
   guides(fill=guide_colorbar(title="RCE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
@@ -275,7 +275,7 @@ ggplot(results_rce, aes(x=factor(beta), y=factor(corr_among), fill=mae)) +
   geom_tile() +
   geom_text(aes(label=round(mae,1))) +
   coord_equal() +
-  xlab("width of species distribution (beta)") +
+  xlab("virtual species distribution width threshold") +
   ylab("correlation among species") +
   guides(fill=guide_colorbar(title="MAE")) +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
@@ -289,7 +289,7 @@ ggplot(results_rce, aes(x=factor(beta), y=factor(corr_among), fill=mc)) +
   geom_tile() +
   geom_text(aes(label=round(mc,1))) +
   coord_equal() +
-  xlab("width of species distribution (beta)") +
+  xlab("virtual species distribution width threshold") +
   ylab("correlation among species") +
   guides(fill=guide_colorbar(title="MC")) +
   ggthemes::scale_fill_continuous_tableau(palette="Blue-Teal") +
@@ -309,9 +309,9 @@ So here we have a condensed version with less detail.
 
 
 ## Only investigate output for intermediate correlation settings:
-results_main <- results %>% 
-  dplyr::filter(beta == 0.6) %>% 
-  dplyr::filter(corr_among == 0.3)
+results_main <- results #%>% 
+  #dplyr::filter(beta == 0.6) %>% 
+  #dplyr::filter(corr_among == 0.3)
 
 ## PLOT 2: Relative error in commonness
 results_main <- purrr::map_dfr(1:nrow(results_main), function(x) {
