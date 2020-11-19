@@ -54,17 +54,17 @@ virtualspecies_simfun <- function(siminputrow, parameters, max_runs, energy_thre
   set.seed(p$random_seed)
   
   # Construct virtual species:
-  spp <- spectre::generate_data_virtualspecies(ncol=p$landscape_size, nrow=p$landscape_size,
-                                               corr_within = p$corr_within, 
-                                               corr_among = p$corr_among, 
-                                               gamma = p$gamma, 
-                                               beta = p$beta)
+  spp <- generate_data_virtualspecies(ncol=p$landscape_size, nrow=p$landscape_size,
+                                      corr_within = p$corr_within, 
+                                      corr_among = p$corr_among, 
+                                      gamma = p$gamma, 
+                                      beta = p$beta)
   
   # Calculate alpha:
   alpha <- raster::getValues(sum(spp))
   
   # Construct solution and target:
-  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
+  solution <- generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   
   t1_end_data_preparation <- Sys.time()
