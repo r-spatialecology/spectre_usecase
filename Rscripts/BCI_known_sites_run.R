@@ -13,7 +13,6 @@ n_sites <- 100 # how large is the BCI subset used
 n_species <- 100  # how many species are sampled subset of the BCI data 
 known_sites <- c(seq(0, 40, 5)) # all species from how many sites are "fixed"?
 max_iterations <- 50000 # how many iterations of the algorithm
-energy_threshold <- 0.0 
 verbose = TRUE
 
 parameters <- tidyr::crossing(replicate, 
@@ -102,25 +101,25 @@ sim_fun <- function(siminputrow, parameters, writeRDS, verbose)
         alpha_list[alpha_list < colSums(fixed_species)] <- colSums(fixed_species)[alpha_list < colSums(fixed_species)]
         print("More fixed species than richness at site(s), thus richness was corrected to be the number of fixed species there")
       }else{
-        print("Number ")
+        print("Everything is OK :-)  ")
       }
       
-      res_min_conf <- spectre::run_optimization_min_conf_0(alpha_list = alpha_list, 
+      res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha_list, 
                                                            total_gamma = total_gamma, 
                                                            target = target_commonness, 
                                                            fixed_species = fixed_species,
                                                            max_iterations = max_iterations,
-                                                           energy_threshold = energy_threshold,
+                                                           # energy_threshold = energy_threshold,
                                                            verbose = verbose,
                                                            seed = seed) # 
       
       # only keep sites that have no fixed species
       sampled_data <- sampled_data[, - fixed_sites]
       
-      res_min_conf$optimized_grid <- res_min_conf$optimized_grid[, -fixed_sites]
+      
       
       # re-calculate target commonness 
-      (target_commonness <- spectre:::calculate_solution_commonness_rcpp( sampled_data ) )
+      
       
     } else {
       # no fixed species at random sites
