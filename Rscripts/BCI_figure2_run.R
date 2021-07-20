@@ -15,7 +15,7 @@ library("foreach")
 replicate <- 1 # replicates per parameter combination
 n_sites <- c(100) # how large is the BCI subset used
 n_species <- c(100) # how many species are sampled from subset of the BCI data 
-max_iterations <- c(60000) # how many iterations of the algorithm
+max_iterations <- c(50000) # how many iterations of the algorithm
 verbose = TRUE
 
 parameters <- tidyr::crossing(replicate, 
