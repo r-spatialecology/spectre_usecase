@@ -4,7 +4,7 @@
 # We arbitrarily chose tree stem data set number 8 and only need 
 # "treeID", "sp" = species name & "quadrat" = grid cell of tree, number xxyy indicates rows and columns
 
-load("bci.tree8.rdata")
+load("raw_data/bci.tree8.rdata")
 data <- bci.tree8[, names(bci.tree8) %in% c("treeID", "sp", "quadrat")]
 
 Sites <- data$quadrat
@@ -30,4 +30,4 @@ for (SITES in 1:n_sites){
   }
 }
 
-# saveRDS(res, file.path(paste0("./data/BCI_tree8_MSP.rds")))
+saveRDS(res, file.path(paste0("./data/BCI_tree8_MSP.rds")))

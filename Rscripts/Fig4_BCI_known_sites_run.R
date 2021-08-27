@@ -1,15 +1,24 @@
+# Script 1 to produce Fig. 4 in the spectre manuscript 
+# Simpkins et al. () intended to be published in MEE
+# ==================================================
+
 # Predicting specific species for specific sites, using 100 random sites from the BCI data set.
 # Tree species compositions from n sites are copied directly into the siteXspecies solution matrix.
 # These "known species" at "known sites" are fixed, only species at "unknown sites" will be optimized.
 # We evaluate how the inclusion of "known species" at "known sites" increases the number of correctly 
 # predicted species at specific sites (script to reproduce Figure 4 of the manuscript)
 
-# install.packages("spectre")
+# We are thankful for the permission to use the Barro Colorado data set.
+# Condit R., Perez, R., Aguilar, S., Lao, S., Foster, R., Hubbell, S.P. 2019. 
+# Complete data from the Barro Colorado 50-ha plot: 423617 trees, 35 years, 2019 version.   
+# https://doi.org/10.15146/5xcp-0d46.
 
+
+# install.packages("spectre")
 library("spectre")
 library("foreach")
 
-out_dir <- "data/BCI_known_sites"
+out_dir <- "data/Fig4_data"
 dir.create(file.path(out_dir))
 
 doParallel::registerDoParallel(24)
@@ -190,6 +199,3 @@ foreach(REPLICATE = 1:dim(parameters)[1], .export = c("p"), .packages = c("spect
           TRUE)
   return(1)
 } 
-
-
-
