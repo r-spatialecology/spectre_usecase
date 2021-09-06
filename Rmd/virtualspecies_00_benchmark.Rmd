@@ -30,8 +30,8 @@ library(landscapetools)
 sapply(list.files("../R", full.names = TRUE), source)
 set.seed(3562347)
 exec <- "HPC" # "HPC"
-dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
-dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
+dir.hpc <- file.path("${HOME}/spectre")
+dir.cloud <- file.path("${HOME}/spectre/results")
 
 ## Constant parameters:
 replicates <- 1
@@ -40,10 +40,10 @@ energy_threshold <- 0
 beta <- 0.75
 
 ## Variable parameters:
-landscape_size <- c(10,25,50,75,100)
+landscape_size <- c(10, 25, 50, 75, 100)
 corr_within <- 0.5
 corr_among <- 0.1
-gamma <- c(100,200,300,400)
+gamma <- c(100, 200, 300, 400)
 random_seeds <- round(runif(replicates) * 100000)
 
 ## Generate parameter matrix:
