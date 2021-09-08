@@ -5,7 +5,6 @@
 #' @param siminputrow define which row of the parameters tibble should be computed
 #' @param parameters a parameter matrix containing details on the virtualspecies parameterization (see Details below)
 #' @param max_runs maximum number of runs in spectre::run_optimization_min_conf()
-#' @param energy_threshold energy threshold in spectre::run_optimization_min_conf()
 #' @param writeRDS TRUE/FALSE, if TRUE, each run weill be stored as rds (can be useful when performing calculations on the HPC)
 #' @param outdir directory for storing rds files (only used when writeRDS = TRUE)
 #' 
@@ -37,7 +36,6 @@
 #'   virtualspecies_simfun(siminputrow = x, 
 #'                         parameters = parameters,
 #'                         max_runs = max_runs,
-#'                         energy_threshold = energy_threshold,
 #'                         writeRDS = FALSE,
 #'                         outdir = dir.cloud)
 #'                         })
@@ -45,7 +43,7 @@
 #' }
 #' @export
 
-virtualspecies_simfun <- function(siminputrow, parameters, max_runs, energy_threshold, writeRDS, outdir)
+virtualspecies_simfun <- function(siminputrow, parameters, max_runs, writeRDS, outdir)
 {
   t0_start_simfun <- Sys.time()
   
@@ -70,7 +68,12 @@ virtualspecies_simfun <- function(siminputrow, parameters, max_runs, energy_thre
   t1_end_data_preparation <- Sys.time()
   
   # Run spectre:
-  res_min_conf <- spectre::run_optimization_min_conf(alpha, p$gamma, target, max_runs, energy_threshold)
+  res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha, 
+                                                     total_gamma = p$gamma, 
+                                                     target = target, 
+                                                     max_iterations = max_runs,
+                                                     verbose = FALSE,
+                                                     interruptible = FALSE)
   t2_end_spectre <- Sys.time()
   
   # Create tibble

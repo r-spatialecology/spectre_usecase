@@ -35,16 +35,16 @@ However, instead of using the same suitability map for all species, we generate 
 Here is a more technical description of what happens within the function `generate_data_virtualspecies()`:
 
 * First, the number of species communities (or groups) is estimated. 
-    * We calculate the number of groups as `communities= gamma / (gamma * corr_among)`. For example, if `gamma = 100` and `corr_among = 1`, there is only one community and all species will use the same habitat suitability map. 
-    * If `gamma = 100` and `corr_among = 0.1`, there are 10 communities with ~10 species each. Thus, we will generate 10 different suitability maps. As a result, there is less autocorrelation among species.
+* We calculate the number of groups as `communities= gamma / (gamma * corr_among)`. For example, if `gamma = 100` and `corr_among = 1`, there is only one community and all species will use the same habitat suitability map. 
+* If `gamma = 100` and `corr_among = 0.1`, there are 10 communities with ~10 species each. Thus, we will generate 10 different suitability maps. As a result, there is less autocorrelation among species.
 * Second, the suitability maps are created with `nlm_gaussianfield()`. 
-    * The gaussianfield approach allows us to define spatial autocorrelation within each suitability map. 
-    * Thus, when `corr_within = 1` habitat suitability is highly clustered. If `corr_within = 0` there is no clustering of habitat suitability.
+* The gaussianfield approach allows us to define spatial autocorrelation within each suitability map. 
+* Thus, when `corr_within = 1` habitat suitability is highly clustered. If `corr_within = 0` there is no clustering of habitat suitability.
 * Third, virtualspecies distributions are created with `virtualspecies::convertToPA()`.
-    * We loop through all species (gamma)
-    * For each species we randomly select one of the generated suitability maps
-    * The species distribution is then generated with `virtualspecies::convertToPA()`
-    * Results are reported as raster stack with presence/absence maps
+* We loop through all species (gamma)
+* For each species we randomly select one of the generated suitability maps
+* The species distribution is then generated with `virtualspecies::convertToPA()`
+* Results are reported as raster stack with presence/absence maps
 
 
 ## Example of the NLMR-virtualspecies approach
@@ -59,7 +59,6 @@ Afterwards we can use the `plot_virtualspecies()` function to investigate our vi
 library(spectre)
 library(raster)
 ## Source spectre analysis functions (R folder)
-sapply(list.files("../R", full.names = TRUE), source)
 set.seed(56737)
 
 ## Step 1: Generate virtualspecies community
@@ -98,11 +97,10 @@ Now we have everything we need to run spectre:
 ```{r optimize}
 #### Step 3: Execute optimization
 max_runs <- 200
-res_min_conf <- spectre::run_optimization_min_conf_0(alpha_list=alpha, 
-                                                     total_gamma=gamma, 
-                                                     target=target, 
-                                                     max_iterations=max_runs,
-                                                     energy_threshold = 0.0)
+res_min_conf <- spectre::run_optimization_min_conf(alpha_list=alpha, 
+                                                   total_gamma=gamma, 
+                                                   target=target, 
+                                                   max_iterations=max_runs)
 spectre::plot_energy(res_min_conf)
 ```
 
