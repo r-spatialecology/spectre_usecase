@@ -21,8 +21,8 @@ The main constraint is the walltime, which is 48hrs on the normal queue and 172 
 ## Source spectre analysis functions (R folder)
 set.seed(3562347)
 exec <- "HPC" # "HPC"
-dir.hpc <- file.path("/usr/users/shanss/spectre")
-dir.cloud <- file.path("/usr/users/shanss/spectre/results")
+dir.hpc <- file.path("/usr/users/shanss/spectre_miss")
+dir.cloud <- file.path("/usr/users/shanss/spectre_miss")
 
 ## Constant parameters:
 replicates <- 1

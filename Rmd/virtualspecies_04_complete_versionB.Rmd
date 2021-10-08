@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Spectre virtual species: Version B
 
 The spectre manuscript will be focused around the description of the spectre algorithm and the R package.
-A technical usecase is need for several reasons:
+A technical use case is need for several reasons:
 
 * To provide an example how the algorithm can be used and how the inputs and outputs look like
 * To assess the efficiency of the spectre algorithm under various scenarios
@@ -26,7 +26,7 @@ In this experiment version, we decided to include the beta parameter of the virt
 
 * landscape size
 * beta, habitat quality threshold of species distributions
-* spatial autocorrelation of presences among species (niche heterogenity)
+* spatial autocorrelation of presences among species (niche heterogeneity)
 * gamma, total number of species
 
 In addition we run each factor combination with 3 replicates to control for stochasticity.
@@ -45,7 +45,6 @@ library(clustermq)
 library(landscapetools)
 
 ## Source spectre analysis functions (R folder)
-sapply(list.files("../R", full.names = TRUE), source)
 set.seed(3562347)
 exec <- "HPC" # "HPC"
 dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
@@ -53,15 +52,15 @@ dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
 
 ## Constant parameters:
 replicates <- 3
-max_runs <- 50000 ##50k
-energy_threshold <- 0
+max_runs <- 1 ##50k
+autostop <- 500
 corr_within <- 0.5
 
 ## Variable parameters:
-landscape_size <- c(10,20,30)
-beta <- c(0.5,0.6,0.7)
-corr_among <- c(0.1,0.3,0.5)
-gamma <- c(100,200,300)
+landscape_size <- c(10, 20, 30)
+beta <- c(0.5, 0.6, 0.7)
+corr_among <- c(0.1, 0.3, 0.5)
+gamma <- c(100, 150, 200)
 random_seeds <- round(runif(replicates) * 100000)
 
 ## Generate parameter matrix:
@@ -78,7 +77,7 @@ if (exec == "local") {
     virtualspecies_simfun(siminputrow = x, 
                           parameters = parameters,
                           max_runs = max_runs,
-                          energy_threshold = energy_threshold,
+                          autostop = autostop,
                           writeRDS = FALSE,
                           outdir = dir.cloud)
   })
@@ -94,7 +93,7 @@ if (exec == "HPC") {
                           const = list(parameters = parameters,
                                        max_runs = max_runs,
                                        energy_threshold = energy_threshold,
-                                       writeRDS = TRUE,
+                                       writeRDS = FALSE,
                                        outdir = dir.hpc),
                           export = list(), 
                           seed = 42, 

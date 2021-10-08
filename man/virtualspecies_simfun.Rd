@@ -8,7 +8,7 @@ virtualspecies_simfun(
   siminputrow,
   parameters,
   max_runs,
-  energy_threshold,
+  autostop,
   writeRDS,
   outdir
 )
@@ -20,7 +20,7 @@ virtualspecies_simfun(
 
 \item{max_runs}{maximum number of runs in spectre::run_optimization_min_conf()}
 
-\item{energy_threshold}{energy threshold in spectre::run_optimization_min_conf()}
+\item{autostop}{optimizer stops after this number of iterations with no improvement}
 
 \item{writeRDS}{TRUE/FALSE, if TRUE, each run weill be stored as rds (can be useful when performing calculations on the HPC)}
 
@@ -57,7 +57,6 @@ results <- furrr::future_map_dfr(seq(nrow(parameters)), function(x) {
   virtualspecies_simfun(siminputrow = x, 
                         parameters = parameters,
                         max_runs = max_runs,
-                        energy_threshold = energy_threshold,
                         writeRDS = FALSE,
                         outdir = dir.cloud)
                         })
