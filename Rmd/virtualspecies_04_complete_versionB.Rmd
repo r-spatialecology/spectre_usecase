@@ -228,11 +228,11 @@ for(i in unique(sr$landscape_size)) {
 }
 ```
 
-#### Minimum energy
+#### Minimum error
 
-```{r calc.min.energy, include=FALSE}
-energy <- purrr::map_dfr(1:nrow(results), function(x) {
-  energy <- results$spp.spectre[[x]]$energy %>% 
+```{r calc.min.error, include=FALSE}
+error <- purrr::map_dfr(1:nrow(results), function(x) {
+  error <- results$spp.spectre[[x]]$error %>% 
     dplyr::mutate(landscape_size = results$landscape_size[x]) %>% 
     dplyr::mutate(corr_within = results$corr_within[x]) %>% 
     dplyr::mutate(corr_among = results$corr_among[x]) %>%
@@ -241,33 +241,33 @@ energy <- purrr::map_dfr(1:nrow(results), function(x) {
     dplyr::mutate(random_seeds = results$random_seeds[x])
 })
 ## Add labels to factors
-energy$landscape_size <- factor(energy$landscape_size,
-                                levels = unique(energy$landscape_size),
-                                labels = paste0(unique(energy$landscape_size), " x ", unique(energy$landscape_size)))
-energy$gamma <- factor(energy$gamma,
-                       levels = sort(unique(energy$gamma)),
-                       labels = paste0(sort(unique(energy$gamma)), " species"))
+error$landscape_size <- factor(error$landscape_size,
+                                levels = unique(error$landscape_size),
+                                labels = paste0(unique(error$landscape_size), " x ", unique(error$landscape_size)))
+error$gamma <- factor(error$gamma,
+                       levels = sort(unique(error$gamma)),
+                       labels = paste0(sort(unique(error$gamma)), " species"))
 
-## PLOT 1: Minimum energy
-energy_min <- energy %>% 
+## PLOT 1: Minimum error
+error_min <- error %>% 
   dplyr::group_by(landscape_size, gamma, beta, corr_among, random_seeds) %>% 
-  dplyr::summarise(energy = min(energy)) %>% 
+  dplyr::summarise(error = min(error)) %>% 
   dplyr::group_by(landscape_size, gamma, beta, corr_among) %>% 
-  dplyr::summarise(energy = mean(energy))
+  dplyr::summarise(error = mean(error))
 ```  
 
-```{r plot.min.energy}
-ggplot(energy_min, aes(x=factor(beta), y=factor(corr_among), fill=energy)) +
+```{r plot.min.error}
+ggplot(error_min, aes(x=factor(beta), y=factor(corr_among), fill=error)) +
   facet_grid(landscape_size~gamma) +
   geom_tile() +
-  geom_text(aes(label=round(energy,2))) +
+  geom_text(aes(label=round(error,2))) +
   coord_equal() +
   xlab("virtual species distribution width threshold") +
   ylab("correlation among species") +
   ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
   ggthemes::theme_tufte(base_size = 12)
 
-ggsave(filename="min_energy.png", path=plotdir, width=6, height=6, dpi=300)
+ggsave(filename="min_error.png", path=plotdir, width=6, height=6, dpi=300)
 ```
 
 
@@ -278,7 +278,7 @@ ggsave(filename="min_energy.png", path=plotdir, width=6, height=6, dpi=300)
 results_rce <- purrr::map_dfr(1:nrow(results), function(x) {
   out.tib <- results[x,]
   spp <- results$spp.virtual[[x]]
-  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
+  solution <- generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   optimized_grid <- results$spp.spectre[[x]]$optimized_grid
   
@@ -363,7 +363,7 @@ results_main <- results #%>%
 results_main <- purrr::map_dfr(1:nrow(results_main), function(x) {
   out.tib <- results_main[x,]
   spp <- results_main$spp.virtual[[x]]
-  solution <- spectre::generate_data_virtualspecies_to_solution(spp)
+  solution <- generate_data_virtualspecies_to_solution(spp)
   target <- spectre:::calculate_solution_commonness_rcpp(solution)
   optimized_grid <- results_main$spp.spectre[[x]]$optimized_grid
   
