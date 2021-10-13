@@ -113,12 +113,41 @@ if (exec == "HPC") {
   # when finished, get the results back
   system("scp -r shanss@transfer.gwdg.de:~/_rslurm_spectre_1st_batch ~/spectre/spectre_usecase/")
   
-  results_1st_batch <- get_slurm_out(slr_job = sjob, outtype = "table")
+  # the run time with 50000 iteration exceeds the walltime of our HPC (120 h), we divded 
+  # the optimization therefore in five consecutive batches with 10000 iterations each.
+  # Here is the code for the first consecutive batch:
+  results <- list(batch = tibble())
+  results[[1]] <- get_slurm_out(slr_job = sjob, outtype = "table")
   
-  for (batch in 2:n_batches) {
-    
-  }
+  batch <- 2 # <- adjust here!
   
+  parameters <- results[[batch - 1]]
+  jobname <- paste0("spectre_batch_", batch)
+  sjob <- slurm_apply(f = virtualspecies_simfun, 
+                      params = jobIDs, 
+                      parameters = parameters,
+                      max_runs = max_runs / n_batches,
+                      autostop = autostop,
+                      writeRDS = FALSE,
+                      outdir = outdir,
+                      jobname = jobname,
+                      nodes = nrow(jobIDs), 
+                      cpus_per_node = 1,
+                      rscript_path = "$HOME/.spack/install/haswell/gcc-9.3.0/r-4.0.3-5z5kqf/rlib/R/bin/Rscript", # adjust to your Rscript path
+                      slurm_options = list("time" = "48:00:00", 
+                                           "mem-per-cpu" = "4G",
+                                           "mail-type" = "ALL",
+                                           "mail-user" = "shanss@gwdg.de"),
+                      submit = FALSE)
+  
+  # copy the rslurm folder to the HPC and run `sbatch submit.sh` in that folder
+  system(paste0("scp -r ~/spectre/spectre_usecase/_rslurm_", jobname, " shanss@transfer.gwdg.de:~/"))
+  
+  
+  # when finished, get the results back
+  system(paste0("scp -r shanss@transfer.gwdg.de:~/_rslurm_", jobname, " ~/spectre/spectre_usecase/"))
+  
+  results[[batch]] <- get_slurm_out(slr_job = sjob, outtype = "table")
 }
 #### Restore results from rds files if neccessary:
 #results <- purrr::map_dfr(list.files(dir.cloud, pattern = "rds", full.names = TRUE), function(x) {
