@@ -44,6 +44,8 @@ gamma ~ total gamma of the generated landscape
 beta ~ width of the distribution kernel of the virtualspecies
 corr_among ~ correlation among species (clustering of different species at the same location)
 random_seeds ~ random seeds to control stochasticity
+
+If the parameters tibble contains the results of a previous experiments (see value), this function will try to further improve on it.
 }
 \examples{
 \dontrun{

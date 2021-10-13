@@ -41,18 +41,19 @@ library(tidyverse)
 library(future)
 library(virtualspecies)
 library(furrr)
-library(clustermq)
+library(rslurm)
 library(landscapetools)
 
 ## Source spectre analysis functions (R folder)
 set.seed(3562347)
-exec <- "HPC" # "HPC"
-dir.hpc <- file.path("/home/uni08/jsaleck/spectre")
-dir.cloud <- file.path("/home/jan/netlogo_jan/spectre_usecase")
+exec <- "HPC" # "local"
+dir.hpc <- file.path("$HOME/spectre")
+outdir <- file.path("$HOME/spectre_usecase")
 
 ## Constant parameters:
 replicates <- 3
-max_runs <- 1 ##50k
+max_runs <- 50000
+n_batches <- 5
 autostop <- 500
 corr_within <- 0.5
 
@@ -79,34 +80,46 @@ if (exec == "local") {
                           max_runs = max_runs,
                           autostop = autostop,
                           writeRDS = FALSE,
-                          outdir = dir.cloud)
+                          outdir = outdir)
   })
 }
+
 if (exec == "HPC") {
   
   maxjobs.hpc <- 2000
   njobs <- min(nrow(parameters), maxjobs.hpc)
-  jobIDs <- seq(nrow(parameters))
+  jobIDs <- tibble(siminputrow = seq(nrow(parameters)))
   
-  results <- clustermq::Q(fun = virtualspecies_simfun, 
-                          siminputrow = jobIDs,
-                          const = list(parameters = parameters,
-                                       max_runs = max_runs,
-                                       energy_threshold = energy_threshold,
-                                       writeRDS = FALSE,
-                                       outdir = dir.hpc),
-                          export = list(), 
-                          seed = 42, 
-                          n_jobs = njobs, 
-                          template = list(job_name = "spectre", # define jobname
-                                          log_file = "spectre.log", # define logfile name
-                                          queue = "medium",  # define HPC queue
-                                          service = "normal", # define HPC service
-                                          walltime = "48:00:00", # define walltime
-                                          mem_cpu = "4000")) # define memory per cpu   
-  results <- dplyr::bind_rows(results)
+  sjob <- slurm_apply(f = virtualspecies_simfun, 
+                      params = jobIDs, 
+                      parameters = parameters,
+                      max_runs = max_runs / n_batches,
+                      autostop = autostop,
+                      writeRDS = FALSE,
+                      outdir = outdir,
+                      jobname = 'spectre_1st_batch',
+                      nodes = nrow(jobIDs), 
+                      cpus_per_node = 1,
+                      rscript_path = "$HOME/.spack/install/haswell/gcc-9.3.0/r-4.0.3-5z5kqf/rlib/R/bin/Rscript", # adjust to your Rscript path
+                      slurm_options = list("time" = "48:00:00", 
+                                           "mem-per-cpu" = "4G",
+                                           "mail-type" = "ALL",
+                                           "mail-user" = "shanss@gwdg.de"),
+                      submit = FALSE)
+  
+  # copy the rslurm folder to the HPC and run `sbatch submit.sh` in that folder
+  system("scp -r ~/spectre/spectre_usecase/_rslurm_spectre_1st_batch shanss@transfer.gwdg.de:~/")
+  
+  # when finished, get the results back
+  system("scp -r shanss@transfer.gwdg.de:~/_rslurm_spectre_1st_batch ~/spectre/spectre_usecase/")
+  
+  results_1st_batch <- get_slurm_out(slr_job = sjob, outtype = "table")
+  
+  for (batch in 2:n_batches) {
+    
+  }
+  
 }
-
 #### Restore results from rds files if neccessary:
 #results <- purrr::map_dfr(list.files(dir.cloud, pattern = "rds", full.names = TRUE), function(x) {
 #  res.x <- readRDS(x)
@@ -151,38 +164,38 @@ sr <- purrr::map_dfr(1:nrow(results), function(x) {
     dplyr::mutate(gamma = gamma) %>% 
     dplyr::mutate(beta = beta) %>% 
     dplyr::mutate(random_seeds = random_seeds)
-
+  
   return(sr)
 })
 
 sr$beta <- factor(sr$beta,
-                        levels = unique(sr$beta),
-                        labels = paste0(unique(sr$beta), " beta"))
+                  levels = unique(sr$beta),
+                  labels = paste0(unique(sr$beta), " beta"))
 
 sr$corr_among <- factor(sr$corr_among,
                         levels = unique(sr$corr_among),
                         labels = paste0(unique(sr$corr_among), " among"))
 
 sr$landscape_size <- factor(sr$landscape_size,
-                                 levels = unique(sr$landscape_size),
-                                 labels = paste0(unique(sr$landscape_size), " x ", unique(sr$landscape_size)))
+                            levels = unique(sr$landscape_size),
+                            labels = paste0(unique(sr$landscape_size), " x ", unique(sr$landscape_size)))
 sr$gamma <- factor(sr$gamma,
-                        levels = sort(unique(sr$gamma)),
-                        labels = paste0(sort(unique(sr$gamma)), " species"))
+                   levels = sort(unique(sr$gamma)),
+                   labels = paste0(sort(unique(sr$gamma)), " species"))
 ```
 
 ```{r plot.sr}
 for(i in unique(sr$landscape_size)) {
   sr %>% 
-  dplyr::filter(landscape_size==i) %>% 
-ggplot2::ggplot(., ggplot2::aes(x=x, y=y, fill=alpha)) +
-  facet_grid(random_seeds+gamma~beta+corr_among) +
-        ggplot2::geom_tile() +
-        ggplot2::coord_equal() +
-        #ggplot2::guides(fill="none") +
-        ggplot2::scale_fill_viridis_c(option="D") +
-        ggplot2::theme_void()  
-ggsave(filename = paste0("species_richness_map_", strsplit(i, " ")[[1]][1], ".png"), path = plotdir, width=10, height=10, dpi=300)
+    dplyr::filter(landscape_size==i) %>% 
+    ggplot2::ggplot(., ggplot2::aes(x=x, y=y, fill=alpha)) +
+    facet_grid(random_seeds+gamma~beta+corr_among) +
+    ggplot2::geom_tile() +
+    ggplot2::coord_equal() +
+    #ggplot2::guides(fill="none") +
+    ggplot2::scale_fill_viridis_c(option="D") +
+    ggplot2::theme_void()  
+  ggsave(filename = paste0("species_richness_map_", strsplit(i, " ")[[1]][1], ".png"), path = plotdir, width=10, height=10, dpi=300)
 }
 ```
 
@@ -200,11 +213,11 @@ energy <- purrr::map_dfr(1:nrow(results), function(x) {
 })
 ## Add labels to factors
 energy$landscape_size <- factor(energy$landscape_size,
-                                 levels = unique(energy$landscape_size),
-                                 labels = paste0(unique(energy$landscape_size), " x ", unique(energy$landscape_size)))
+                                levels = unique(energy$landscape_size),
+                                labels = paste0(unique(energy$landscape_size), " x ", unique(energy$landscape_size)))
 energy$gamma <- factor(energy$gamma,
-                        levels = sort(unique(energy$gamma)),
-                        labels = paste0(sort(unique(energy$gamma)), " species"))
+                       levels = sort(unique(energy$gamma)),
+                       labels = paste0(sort(unique(energy$gamma)), " species"))
 
 ## PLOT 1: Minimum energy
 energy_min <- energy %>% 
@@ -256,11 +269,11 @@ results_rce <- results_rce %>%
                    mc = mean(mc))
 
 results_rce$landscape_size <- factor(results_rce$landscape_size,
-                                    levels = unique(results_rce$landscape_size),
-                                    labels = paste0(unique(results_rce$landscape_size), "x", unique(results_rce$landscape_size)))
+                                     levels = unique(results_rce$landscape_size),
+                                     labels = paste0(unique(results_rce$landscape_size), "x", unique(results_rce$landscape_size)))
 results_rce$gamma <- factor(results_rce$gamma,
-                           levels = unique(results_rce$gamma),
-                           labels = paste0(unique(results_rce$gamma), " species"))
+                            levels = unique(results_rce$gamma),
+                            labels = paste0(unique(results_rce$gamma), " species"))
 ```
 
 ```{r plot.rec}
@@ -314,8 +327,8 @@ ggsave(filename="mc.png", path=plotdir, width=6, height=6, dpi=300)
 
 ## Only investigate output for intermediate correlation settings:
 results_main <- results #%>% 
-  #dplyr::filter(beta == 0.6) %>% 
-  #dplyr::filter(corr_among == 0.3)
+#dplyr::filter(beta == 0.6) %>% 
+#dplyr::filter(corr_among == 0.3)
 
 ## PLOT 2: Relative error in commonness
 results_main <- purrr::map_dfr(1:nrow(results_main), function(x) {
@@ -343,9 +356,9 @@ results_main <- purrr::map_dfr(1:nrow(results_main), function(x) {
 
 
 results_main$landscape_size <- factor(results_main$landscape_size,
-                                    levels = unique(results_main$landscape_size),
-                                    labels = paste0(unique(results_main$landscape_size), "x",
-                                                    unique(results_main$landscape_size)))
+                                      levels = unique(results_main$landscape_size),
+                                      labels = paste0(unique(results_main$landscape_size), "x",
+                                                      unique(results_main$landscape_size)))
 #results_rce$gamma <- factor(results_rce$gamma,
 #                           levels = unique(results_rce$gamma),
 #                           labels = paste0(unique(results_rce$gamma), " species"))

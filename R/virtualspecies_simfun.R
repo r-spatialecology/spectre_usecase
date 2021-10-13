@@ -23,6 +23,8 @@
 #' corr_among ~ correlation among species (clustering of different species at the same location)
 #' random_seeds ~ random seeds to control stochasticity
 #' 
+#' If the parameters tibble contains the results of a previous experiments (see value), this function will try to further improve on it.
+#' 
 #' 
 #' @return spectre results object
 #' @examples 
@@ -52,41 +54,72 @@ virtualspecies_simfun <- function(siminputrow, parameters, max_runs, autostop, w
   p <- parameters[siminputrow,]
   set.seed(p$random_seed)
   
-  # Construct virtual species:
-  spp <- generate_data_virtualspecies(ncol=p$landscape_size, nrow=p$landscape_size,
-                                      corr_within = p$corr_within, 
-                                      corr_among = p$corr_among, 
-                                      gamma = p$gamma, 
-                                      beta = p$beta)
-  
-  # Calculate alpha:
-  alpha <- raster::getValues(sum(spp))
-  
-  # Construct solution and target:
-  solution <- generate_data_virtualspecies_to_solution(spp)
-  target <- spectre:::calculate_solution_commonness_rcpp(solution)
-  
-  t1_end_data_preparation <- Sys.time()
-  
-  # Run spectre:
-  res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha, 
-                                                     total_gamma = p$gamma, 
-                                                     target = target, 
-                                                     max_iterations = max_runs,
-                                                     autostop = autostop,
-                                                     verbose = FALSE,
-                                                     interruptible = FALSE)
-  t2_end_spectre <- Sys.time()
-  
-  # Create tibble
-  result <- tibble::tibble(spp.virtual = list(spp),
-                           spp.spectre = list(res_min_conf),
-                           bench_total = t2_end_spectre - t0_start_simfun,
-                           bench_prep = t1_end_data_preparation - t0_start_simfun,
-                           bench_spectre = t2_end_spectre - t1_end_data_preparation)
-  
-  # Combine with input
-  result <- cbind(p, result)
+  # check if it is a new optimization
+  if (!"spp.spectre" %in% colnames(parameters)) {
+    # Construct virtual species:
+    spp <- generate_data_virtualspecies(ncol=p$landscape_size, nrow=p$landscape_size,
+                                        corr_within = p$corr_within, 
+                                        corr_among = p$corr_among, 
+                                        gamma = p$gamma, 
+                                        beta = p$beta)
+    
+    # Calculate alpha:
+    alpha <- raster::getValues(sum(spp))
+    
+    # Construct solution and target:
+    solution <- generate_data_virtualspecies_to_solution(spp)
+    target <- spectre:::calculate_solution_commonness_rcpp(solution)
+    
+    t1_end_data_preparation <- Sys.time()
+    
+    # Run spectre:
+    res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha, 
+                                                       total_gamma = p$gamma, 
+                                                       target = target, 
+                                                       max_iterations = max_runs,
+                                                       autostop = autostop,
+                                                       verbose = FALSE,
+                                                       interruptible = FALSE)
+    t2_end_spectre <- Sys.time()
+    
+    # Create tibble
+    result <- tibble::tibble(spp.virtual = list(spp),
+                             spp.spectre = list(res_min_conf),
+                             bench_total = t2_end_spectre - t0_start_simfun,
+                             bench_prep = t1_end_data_preparation - t0_start_simfun,
+                             bench_spectre = t2_end_spectre - t1_end_data_preparation)
+    # Combine with input
+    result <- cbind(p, result)
+    
+  } else {
+    # improve a previous result (given in `p`)
+    # Calculate alpha:
+    alpha <- raster::getValues(sum(p$spp.virtual[[1]]))
+    
+    # Construct solution and target:
+    solution <- generate_data_virtualspecies_to_solution(p$spp.virtual[[1]])
+    target <- spectre:::calculate_solution_commonness_rcpp(solution)
+    
+    t1_end_data_preparation <- Sys.time()
+    
+    # Run spectre:
+    res_min_conf <- spectre::run_optimization_min_conf(alpha_list = alpha, 
+                                                       total_gamma = p$gamma, 
+                                                       target = target, 
+                                                       max_iterations = max_runs,
+                                                       partial_solution = p$spp.spectre[[1]],
+                                                       autostop = autostop,
+                                                       verbose = FALSE,
+                                                       interruptible = FALSE)
+    t2_end_spectre <- Sys.time()
+    
+    # Create result tibble
+    result <- p
+    result$spp.spectre <- list(res_min_conf)
+    result$bench_total <- p$bench_total + t2_end_spectre - t0_start_simfun
+    result$bench_prep <- p$bench_prep + t1_end_data_preparation - t0_start_simfun
+    result$bench_spectre <- p$bench_spectre + t2_end_spectre - t1_end_data_preparation
+  }
   
   # Write output
   if(isTRUE(writeRDS)) {
