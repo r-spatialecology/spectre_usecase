@@ -1,0 +1,399 @@
+#' ---
+#' title: "Spectre virtual species"
+#' author: c("Jan Salecker", "Sebastian Hanss")
+#' date: "10/31/2021"
+#' ---
+
+#' 
+#' 
+#' ## Spectre virtual species
+#' 
+#' The spectre manuscript will be focused around the description of the spectre algorithm and the R package.
+#' A technical use case is need for several reasons:
+#' 
+#' * To provide an example how the algorithm can be used and how the inputs and outputs look like
+#' * To assess the efficiency of the spectre algorithm under various scenarios
+#' * To point out future directions of package development
+#' 
+#' In addition to our approach of investigating the BCI dataset, this draft uses the virtualspecies data generation approach (see `virtualspecies_01_simple.Rmd` and `virtualspecies_02_advanced.RMD`) to explore the spectre package.
+#' 
+#' In this example (Version B) we vary four factors to investigate how spectre scales.
+#' In this experiment version, we decided to include the beta parameter of the virtualspecies package into our experiment. Earlier investigations showed that beta has much more influence on the results, than for example the correlation within species (which is used in Version A). However, adding another layer of variation to the figures will not work well and would make interpretation of the results to complex. Thus, we decided to drop the factor with the least effect on our outputs. This is corr_within, so we fix that to 0.5 and vary beta from 0.5-0.7 instead. The following factors are varied within this experiment:
+#' 
+#' * landscape size
+#' * beta, habitat quality threshold of species distributions
+#' * spatial autocorrelation of presences among species (niche heterogeneity)
+#' * gamma, total number of species
+#' 
+#' In addition we run each factor combination with 3 replicates to control for stochasticity.
+#' 
+#' ## Executing
+#' 
+#' The following part runs the algorithm on the GWDG HPC nodes:
+#' 
+library(spectre)
+library(tidyverse)
+library(future)
+library(virtualspecies)
+library(furrr)
+library(rslurm)
+library(landscapetools)
+library(ggplot2)
+
+set.seed(3562347)
+exec <- "HPC" # "local"
+dir.hpc <- file.path("$HOME/spectre")
+outdir <- file.path("$HOME/spectre_usecase")
+
+## Constant parameters: ----
+replicates <- 3
+max_runs <- 50000
+n_batches <- 5
+autostop <- 500
+corr_within <- 0.5
+
+## Variable parameters:  ----
+landscape_size <- c(10, 20, 30)
+beta <- c(0.5, 0.6, 0.7)
+corr_among <- c(0.1, 0.3, 0.5)
+gamma <- c(100, 150, 200)
+random_seeds <- round(runif(replicates) * 100000)
+
+## Generate parameter matrix:  ----
+parameters <- expand.grid(landscape_size = landscape_size,
+                          corr_within = corr_within,
+                          gamma = gamma,
+                          beta = beta,
+                          corr_among = corr_among,
+                          random_seeds = random_seeds)
+
+if (exec == "local") {
+  plan(multisession)
+  results <- furrr::future_map_dfr(seq(nrow(parameters)), function(x) {
+    virtualspecies_simfun(siminputrow = x,
+                          parameters = parameters,
+                          max_runs = max_runs,
+                          autostop = autostop,
+                          writeRDS = FALSE,
+                          outdir = outdir)
+  })
+}
+
+if (exec == "HPC") {
+  
+  maxjobs.hpc <- 2000
+  njobs <- min(nrow(parameters), maxjobs.hpc)
+  jobIDs <- tibble(siminputrow = seq(nrow(parameters)))
+  
+  sjob <- slurm_apply(f = virtualspecies_simfun,
+                      params = jobIDs,
+                      parameters = parameters,
+                      max_runs = max_runs / n_batches,
+                      autostop = autostop,
+                      writeRDS = FALSE,
+                      outdir = outdir,
+                      jobname = 'spectre_1st_batch',
+                      nodes = nrow(jobIDs),
+                      cpus_per_node = 1,
+                      rscript_path = "$HOME/.spack/install/haswell/gcc-9.3.0/r-4.0.3-5z5kqf/rlib/R/bin/Rscript", # adjust to your Rscript path
+                      slurm_options = list("time" = "48:00:00",
+                                           "mem-per-cpu" = "4G",
+                                           "mail-type" = "ALL",
+                                           "mail-user" = "shanss@gwdg.de"),
+                      submit = FALSE)
+  
+  # copy the rslurm folder to the HPC and run `sbatch submit.sh` in that folder
+  system("scp -r ~/spectre/spectre_usecase/_rslurm_spectre_1st_batch shanss@transfer.gwdg.de:~/")
+  
+  # when finished, get the results back
+  system("scp -r shanss@transfer.gwdg.de:~/_rslurm_spectre_1st_batch ~/spectre/spectre_usecase/")
+  
+  # the run time with 50000 iteration exceeds the walltime of our HPC (120 h), we divded
+  # the optimization therefore in five consecutive batches with 10000 iterations each.
+  # Here is the code for the first consecutive batch:
+  results <- list(batch = tibble())
+  results[[1]] <- get_slurm_out(slr_job = sjob, outtype = "table", wait = FALSE, ncores = 32)
+  
+  batch <- 10 # 2 3 4 5 6 7 8 9 <- adjust here!
+  
+  parameters <- results[[batch - 1]]
+  jobname <- paste0("spectre_batch_", batch)
+  sjob <- slurm_apply(f = virtualspecies_simfun,
+                      params = jobIDs,
+                      parameters = parameters,
+                      max_runs = max_runs / n_batches,
+                      autostop = autostop,
+                      writeRDS = FALSE,
+                      outdir = outdir,
+                      jobname = jobname,
+                      nodes = nrow(jobIDs),
+                      cpus_per_node = 1,
+                      rscript_path = "$HOME/.spack/install/haswell/gcc-9.3.0/r-4.0.3-5z5kqf/rlib/R/bin/Rscript", # adjust to your Rscript path
+                      slurm_options = list("time" = "48:00:00",
+                                           "mem-per-cpu" = "4G",
+                                           "mail-type" = "ALL",
+                                           "mail-user" = "shanss@gwdg.de"),
+                      submit = FALSE)
+  
+  # copy the rslurm folder to the HPC and run `sbatch submit.sh` in that folder
+  system(paste0("scp -r ~/spectre/spectre_usecase/_rslurm_", jobname, " shanss@transfer.gwdg.de:~/"))
+  
+  ## run sbatch submit.sh on the HPC
+  
+  # when finished, get the results back
+  system(paste0("scp -r shanss@transfer.gwdg.de:~/_rslurm_", jobname, " ~/spectre/spectre_usecase/"))
+  
+  results[[batch]] <- get_slurm_out(slr_job = sjob, outtype = "table")
+}
+
+## Restore results from rds files if neccessary:
+# results <- purrr::map_dfr(list.files(dir.cloud, pattern = "rds", full.names = TRUE), function(x) {
+#  res.x <- readRDS(x)
+#  return(res.x)
+# })
+
+##STORE RESULTS:
+results <- results[[length(results)]] # end results, only
+saveRDS(results, file = file.path("./data/virtualspecies_04_complete_versionB.rds"))
+
+
+#' 
+#' Analysis
+#' 
+#' We first need to load the data that was processed by the HPC.
+#' 
+
+library(tidyverse)
+results <- readRDS("data/virtualspecies_04_complete_versionB.rds")
+plotdir <- "figures/virtualspecies_complete_versionB"
+
+
+#' 
+#' ##Species richness of simulated species grids
+#' 
+#' Here we plot the species distribution of the virtualspecies communities that were analysed.
+#' 
+sr <- purrr::map_dfr(1:nrow(results), function(x) {
+  
+  landscape_size <- results$landscape_size[x]
+  corr_within <- results$corr_within[x]
+  corr_among <- results$corr_among[x]
+  gamma <- results$gamma[x]
+  beta <- results$beta[x]
+  random_seeds <- results$random_seeds[x]
+  
+  sr <- raster::as.data.frame(sum(results$spp.virtual[[x]]), xy=TRUE) %>% 
+    dplyr::rename(alpha=layer) %>% 
+    dplyr::mutate(landscape_size = landscape_size) %>% 
+    dplyr::mutate(corr_within = corr_within) %>% 
+    dplyr::mutate(corr_among = corr_among) %>%
+    dplyr::mutate(gamma = gamma) %>% 
+    dplyr::mutate(beta = beta) %>% 
+    dplyr::mutate(random_seeds = random_seeds)
+  
+  return(sr)
+})
+
+sr$beta <- factor(sr$beta,
+                  levels = unique(sr$beta),
+                  labels = paste0(unique(sr$beta), " beta"))
+
+sr$corr_among <- factor(sr$corr_among,
+                        levels = unique(sr$corr_among),
+                        labels = paste0(unique(sr$corr_among), " among"))
+
+sr$landscape_size <- factor(sr$landscape_size,
+                            levels = unique(sr$landscape_size),
+                            labels = paste0(unique(sr$landscape_size), " x ", unique(sr$landscape_size)))
+sr$gamma <- factor(sr$gamma,
+                   levels = sort(unique(sr$gamma)),
+                   labels = paste0(sort(unique(sr$gamma)), " species"))
+
+## ----plot.sr------------------------------------------------------------------------------------------
+for(i in unique(sr$landscape_size)) {
+  sr %>% 
+    dplyr::filter(landscape_size==i) %>% 
+    ggplot2::ggplot(., ggplot2::aes(x=x, y=y, fill=alpha)) +
+    facet_grid(random_seeds+gamma~beta+corr_among) +
+    ggplot2::geom_tile() +
+    ggplot2::coord_equal() +
+    #ggplot2::guides(fill="none") +
+    ggplot2::scale_fill_viridis_c(option="D") +
+    ggplot2::theme_void()  
+  ggsave(filename = paste0("species_richness_map_", strsplit(i, " ")[[1]][1], ".png"), path = plotdir, width=10, height=10, dpi=300)
+}
+
+#' 
+#' #### Minimum error
+#' 
+## ----calc.min.error, include=FALSE--------------------------------------------------------------------
+error <- purrr::map_dfr(1:nrow(results), function(x) {
+  error <- results$spp.spectre[[x]]$error %>% 
+    dplyr::mutate(landscape_size = results$landscape_size[x]) %>% 
+    dplyr::mutate(corr_within = results$corr_within[x]) %>% 
+    dplyr::mutate(corr_among = results$corr_among[x]) %>%
+    dplyr::mutate(gamma = results$gamma[x]) %>% 
+    dplyr::mutate(beta = results$beta[x]) %>% 
+    dplyr::mutate(random_seeds = results$random_seeds[x])
+})
+## Add labels to factors
+error$landscape_size <- factor(error$landscape_size,
+                               levels = unique(error$landscape_size),
+                               labels = paste0(unique(error$landscape_size), " x ", unique(error$landscape_size)))
+error$gamma <- factor(error$gamma,
+                      levels = sort(unique(error$gamma)),
+                      labels = paste0(sort(unique(error$gamma)), " species"))
+
+## PLOT 1: Minimum error
+error_min <- error %>% 
+  dplyr::group_by(landscape_size, gamma, beta, corr_among, random_seeds) %>% 
+  dplyr::summarise(error = min(error)) %>% 
+  dplyr::group_by(landscape_size, gamma, beta, corr_among) %>% 
+  dplyr::summarise(error = mean(error))
+
+#' 
+## ----plot.min.error-----------------------------------------------------------------------------------
+ggplot(error_min, aes(x=factor(beta), y=factor(corr_among), fill=error)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label=round(error,2))) +
+  coord_equal() +
+  xlab("virtual species distribution width threshold") +
+  ylab("correlation among species") +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
+  ggthemes::theme_tufte(base_size = 12)
+
+ggsave(filename="min_error.png", path=plotdir, width=6, height=6, dpi=300)
+
+#' 
+#' 
+#' #### Realtive commonness error
+#' 
+## ----calc.rce, include=FALSE--------------------------------------------------------------------------
+## PLOT 2: Relative error in commonness
+results_rce <- purrr::map_dfr(1:nrow(results), function(x) {
+  out.tib <- results[x,]
+  spp <- results$spp.virtual[[x]]
+  solution <- generate_data_virtualspecies_to_solution(spp)
+  target <- spectre:::calculate_solution_commonness_rcpp(solution)
+  optimized_grid <- results$spp.spectre[[x]]$optimized_grid
+  
+  # Calculate mean commonness (mc), relatice commonness error (rce) and mean absolute commonness error (mae)
+  out.tib$mc <- calculate_mc(target)
+  out.tib$rce <- calculate_rce(target, optimized_grid)
+  out.tib$mae <- calculate_mae(target, optimized_grid)
+  
+  return(out.tib)
+})
+
+# Aggregate across replicates (random seeds)
+results_rce <- results_rce %>% 
+  dplyr::group_by(landscape_size, gamma, beta, corr_among) %>% 
+  dplyr::summarise(rce = mean(rce),
+                   mae = mean(mae),
+                   mc = mean(mc))
+
+results_rce$landscape_size <- factor(results_rce$landscape_size,
+                                     levels = unique(results_rce$landscape_size),
+                                     labels = paste0(unique(results_rce$landscape_size), "x", unique(results_rce$landscape_size)))
+results_rce$gamma <- factor(results_rce$gamma,
+                            levels = unique(results_rce$gamma),
+                            labels = paste0(unique(results_rce$gamma), " species"))
+
+#' 
+## ----plot.rec-----------------------------------------------------------------------------------------
+ggplot(results_rce, aes(x=factor(beta), y=factor(corr_among), fill=rce)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label=round(rce,2))) +
+  coord_equal() +
+  xlab("virtual species distribution width threshold") +
+  ylab("correlation among species") +
+  guides(fill=guide_colorbar(title="RCE")) +
+  ggthemes::scale_fill_continuous_tableau(palette="Red-Gold") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave(filename = "rce.png", path=plotdir, width=6, height=6, dpi=300)
+
+
+## ----plot.mae-----------------------------------------------------------------------------------------
+ggplot(results_rce, aes(x = factor(beta), y = factor(corr_among), fill = mae)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label = round(mae, 1))) +
+  coord_equal() +
+  xlab("virtual species distribution width threshold") +
+  ylab("correlation among species") +
+  guides(fill = guide_colorbar(title = "MAE")) +
+  ggthemes::scale_fill_continuous_tableau(palette = "Red-Gold") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave(filename = "mae.png", path=plotdir, width = 6, height = 6, dpi = 300)
+
+
+## ----plot.mc------------------------------------------------------------------------------------------
+ggplot(results_rce, aes(x = factor(beta), y = factor(corr_among), fill = mc)) +
+  facet_grid(landscape_size~gamma) +
+  geom_tile() +
+  geom_text(aes(label = round(mc, 1))) +
+  coord_equal() +
+  xlab("virtual species distribution width threshold") +
+  ylab("correlation among species") +
+  guides(fill = guide_colorbar(title = "MC")) +
+  ggthemes::scale_fill_continuous_tableau(palette = "Blue-Teal") +
+  ggthemes::theme_tufte(base_size = 12)
+ggsave(filename = "mc.png", path = plotdir, width = 6, height = 6, dpi = 300)
+
+
+
+# Compact plots for main text ----
+
+results_main <- results 
+
+## PLOT 2: Relative error in commonness
+results_main <- purrr::map_dfr(1:nrow(results_main), function(x) {
+  out.tib <- results_main[x,]
+  spp <- results_main$spp.virtual[[x]]
+  solution <- generate_data_virtualspecies_to_solution(spp)
+  target <- spectre:::calculate_solution_commonness_rcpp(solution)
+  optimized_grid <- results_main$spp.spectre[[x]]$optimized_grid
+  
+  # Calculate mean commonness (mc), relatice commonness error (rce) and mean absolute commonness error (mae)
+  out.tib$mc <- calculate_mc(target)
+  out.tib$rce <- calculate_rce(target, optimized_grid)
+  out.tib$mae <- calculate_mae(target, optimized_grid)
+  
+  return(out.tib)
+}) %>% 
+  dplyr::select(landscape_size,gamma, rce, mae, mc) %>% 
+  dplyr::group_by(landscape_size, gamma) %>% 
+  dplyr::summarise(rce_mu = mean(rce), 
+                   rce_sd = sd(rce),
+                   rce_min = min(rce),
+                   rce_max = max(rce),
+                   mae_mu = mean(mae), 
+                   mae_sd = sd(mae),
+                   mc_mu = mean(mc), 
+                   mc_sd = sd(mc))
+
+
+results_main$gamma <- factor(results_main$gamma,
+                             levels = unique(results_main$gamma),
+                             labels = paste0(unique(results_main$gamma)))
+
+ggplot(results_main, aes(x = (landscape_size)^2, y = rce_mu, color = gamma, 
+                         group = gamma)) +
+  geom_line(size=1) +
+  geom_pointrange(aes(ymin = rce_mu - rce_sd, ymax = rce_mu + rce_sd), size = 1) +
+  geom_errorbar(aes(ymin = rce_mu-rce_sd, ymax = rce_mu + rce_sd), size = 1, 
+                width = 75) +
+  xlab("Landscape size") +
+  scale_x_continuous(breaks = c(100, 400, 900)) +
+  ylab("RCE [%]") +
+  # scale_y_continuous(limits = c(0, 100)) +
+  guides(color = guide_legend(title = "Gamma diversity")) +
+  ggsci::scale_color_jco() +
+  ggthemes::theme_tufte(base_size = 20) +
+  theme(axis.line = element_line()) 
+
+ggsave(filename="summary_maintext.png", path=plotdir, width=10, height=5, dpi=300)
+
+
