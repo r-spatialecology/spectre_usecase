@@ -59,7 +59,7 @@ generate_data_virtualspecies <- function(ncol,
   
   ## Generate a suitability map for each community:
   suitability <- purrr::map(seq(communities), function(x){
-    NLMR::nlm_gaussianfield(ncol=ncol, nrow=nrow, mag_var = corr_within)}) 
+    NLMR::nlm_gaussianfield(ncol = ncol, nrow=nrow, mag_var = corr_within)}) 
   suitability <- raster::stack(suitability)
   
   ## Generate species distributions:
