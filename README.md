@@ -66,5 +66,10 @@ The main idea of this repository is to accompany the `spectre` R package reposit
 This analysis is packaged into an R-package. To use thr analysis either just click [![Launch Rstudio Binder](http://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/r-spatialecology/spectre_usecase/master?urlpath=rstudio) or 
 
 ```R
-...
+# install.packages("remotes")
+# install all dependencies for this analyses:
+remotes::install_github("r-spatialecology/spectre_usecase")
+library(spectre_usecase)
+
+# run the analyses in the Rscripts folder
 ```
